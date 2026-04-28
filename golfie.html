@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Golfie</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4ade80">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Golfie">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1175,8 +1182,66 @@ async function syncFromServer() {
   }
 }
 
+// ==================== ICON ====================
+function buildAppIcon() {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const ctx = c.getContext('2d');
+    const cx = 90, cy = 90, r = 67;
+
+    // Background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.arc(cx, cy, 90, 0, Math.PI*2); ctx.fill();
+
+    // Green ring
+    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.arc(cx, cy, 75, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Ball
+    const g = ctx.createRadialGradient(76, 71, 2, cx, cy, r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#f4f4f4'); g.addColorStop(1, '#d2d2d2');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+
+    // Dimples (scaled from 512 design, center=256)
+    const s = r / 192;
+    const dp = [
+      [256,96],[212,130],[256,130],[300,130],
+      [190,168],[234,168],[278,168],[322,168],
+      [168,210],[212,210],[256,210],[300,210],[344,210],
+      [148,256],[192,256],[236,256],[280,256],[324,256],[364,256],
+      [168,302],[212,302],[256,302],[300,302],[344,302],
+      [190,344],[234,344],[278,344],[322,344],
+      [212,382],[256,382],[300,382],
+      [256,416]
+    ];
+    ctx.fillStyle = '#b2b2b2';
+    dp.forEach(([dx,dy]) => {
+      ctx.beginPath();
+      ctx.arc(cx+(dx-256)*s, cy+(dy-256)*s, 14*s, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // Highlight
+    const h = ctx.createRadialGradient(72,65,0,72,65,18);
+    h.addColorStop(0,'rgba(255,255,255,0.52)'); h.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = h;
+    ctx.save(); ctx.translate(72,65); ctx.scale(1.6,1);
+    ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Set apple-touch-icon (iOS home screen PNG)
+    let el = document.querySelector('link[rel="apple-touch-icon"]');
+    if (!el) { el = document.createElement('link'); el.rel = 'apple-touch-icon'; document.head.appendChild(el); }
+    el.href = c.toDataURL('image/png');
+  } catch(e) {}
+}
+
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
+  buildAppIcon();
   loadCourses();
   renderHome();
   initClubFeedback();

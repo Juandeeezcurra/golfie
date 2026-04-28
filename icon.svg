@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="ball" cx="38%" cy="33%" r="68%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#f4f4f4"/>
+      <stop offset="100%" stop-color="#d0d0d0"/>
+    </radialGradient>
+    <radialGradient id="shine" cx="30%" cy="28%" r="50%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.55)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <clipPath id="clip">
+      <circle cx="256" cy="256" r="190"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="256" cy="256" r="256" fill="#0a0a0a"/>
+
+  <!-- Subtle green ring -->
+  <circle cx="256" cy="256" r="212" fill="none" stroke="#4ade80" stroke-width="4" opacity="0.28"/>
+
+  <!-- Golf ball -->
+  <circle cx="256" cy="256" r="190" fill="url(#ball)"/>
+
+  <!-- Dimples (clipped to ball) -->
+  <g clip-path="url(#clip)" fill="#b8b8b8">
+    <!-- Top -->
+    <circle cx="256" cy="96"  r="15"/>
+    <!-- Row 2 -->
+    <circle cx="212" cy="130" r="15"/>
+    <circle cx="256" cy="130" r="15"/>
+    <circle cx="300" cy="130" r="15"/>
+    <!-- Row 3 -->
+    <circle cx="190" cy="168" r="15"/>
+    <circle cx="234" cy="168" r="15"/>
+    <circle cx="278" cy="168" r="15"/>
+    <circle cx="322" cy="168" r="15"/>
+    <!-- Row 4 -->
+    <circle cx="168" cy="210" r="15"/>
+    <circle cx="212" cy="210" r="15"/>
+    <circle cx="256" cy="210" r="15"/>
+    <circle cx="300" cy="210" r="15"/>
+    <circle cx="344" cy="210" r="15"/>
+    <!-- Equator -->
+    <circle cx="148" cy="256" r="15"/>
+    <circle cx="192" cy="256" r="15"/>
+    <circle cx="236" cy="256" r="15"/>
+    <circle cx="280" cy="256" r="15"/>
+    <circle cx="324" cy="256" r="15"/>
+    <circle cx="364" cy="256" r="15"/>
+    <!-- Row 6 -->
+    <circle cx="168" cy="302" r="15"/>
+    <circle cx="212" cy="302" r="15"/>
+    <circle cx="256" cy="302" r="15"/>
+    <circle cx="300" cy="302" r="15"/>
+    <circle cx="344" cy="302" r="15"/>
+    <!-- Row 7 -->
+    <circle cx="190" cy="344" r="15"/>
+    <circle cx="234" cy="344" r="15"/>
+    <circle cx="278" cy="344" r="15"/>
+    <circle cx="322" cy="344" r="15"/>
+    <!-- Row 8 -->
+    <circle cx="212" cy="382" r="15"/>
+    <circle cx="256" cy="382" r="15"/>
+    <circle cx="300" cy="382" r="15"/>
+    <!-- Bottom -->
+    <circle cx="256" cy="416" r="15"/>
+  </g>
+
+  <!-- Shine highlight -->
+  <ellipse cx="210" cy="192" rx="52" ry="34" fill="url(#shine)" transform="rotate(-22 210 192)" clip-path="url(#clip)"/>
+</svg>
