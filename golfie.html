@@ -60,6 +60,12 @@
     cursor: pointer; transition: border-color 0.2s;
   }
   .round-card:active { border-color: var(--green); }
+  .delete-round-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    width: 28px; height: 28px; border-radius: 50%; font-size: 12px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .delete-round-btn:active { border-color: var(--red); color: var(--red); }
   .round-card-left .course { font-size: 16px; font-weight: 500; }
   .round-card-left .date { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .round-card-right .score-big { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--green); line-height: 1; }
@@ -510,12 +516,14 @@ const TAGS = ['Corto','Largo','Perfecto','Slice','Hook','Recto','Filazo','Incons
 
 // ==================== UTILS ====================
 function goTo(screen) {
+  document.getElementById('toast').classList.remove('show');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screen).classList.add('active');
   const tabScreens = ['home', 'history'];
   document.getElementById('bottom-nav').classList.toggle('hidden', !tabScreens.includes(screen));
   if (screen === 'home') renderHome();
   if (screen === 'history') renderHistory();
+  if (screen === 'new-round') prefillHcp();
   window.scrollTo(0,0);
 }
 
@@ -570,7 +578,7 @@ function saveRoundToLS(round) {
 }
 
 // ==================== HOME ====================
-function roundCardHTML(r) {
+function roundCardHTML(r, deletable=false) {
   const diff = r.total_score - r.par_total;
   const diffStr = diff > 0 ? '+'+diff : diff < 0 ? String(diff) : 'E';
   return `<div class="round-card" onclick="viewRound('${r.round_id}')">
@@ -578,11 +586,54 @@ function roundCardHTML(r) {
       <div class="course">${r.course_name}</div>
       <div class="date">${formatDate(r.date)} · ${r.tees || ''}</div>
     </div>
-    <div class="round-card-right">
-      <div class="score-big">${r.total_score || '—'}</div>
-      <div class="score-label">${r.total_score ? diffStr : 'En curso'}</div>
+    <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
+      <div>
+        <div class="score-big">${r.total_score || '—'}</div>
+        <div class="score-label">${r.total_score ? diffStr : 'En curso'}</div>
+      </div>
+      ${deletable ? `<button class="delete-round-btn" onclick="event.stopPropagation();deleteRound('${r.round_id}')" title="Borrar">✕</button>` : ''}
     </div>
   </div>`;
+}
+
+function calcHandicapIndex(rounds) {
+  const eligible = rounds
+    .filter(r => r.completed && r.total_score && r.slope_rating && r.course_rating)
+    .slice(0, 20);
+  if (eligible.length < 3) return null;
+  const diffs = eligible
+    .map(r => (r.total_score - r.course_rating) * 113 / r.slope_rating)
+    .sort((a, b) => a - b);
+  const n = diffs.length;
+  const table = [
+    [3,3,1,-2.0],[4,4,1,-1.0],[5,6,1,0],[7,8,2,0],[9,11,3,0],
+    [12,14,4,0],[15,16,5,0],[17,18,6,0],[19,19,7,0],[20,20,8,0]
+  ];
+  const entry = table.find(([min,max]) => n >= min && n <= max);
+  if (!entry) return null;
+  const [,,numDiffs,adj] = entry;
+  const avg = diffs.slice(0, numDiffs).reduce((a,b) => a+b, 0) / numDiffs;
+  return Math.max(0, avg * 0.96 + adj).toFixed(1);
+}
+
+function getAllClubStats() {
+  const rounds = loadRounds().filter(r => r.completed);
+  const totals = {};
+  rounds.forEach(r => {
+    const cf = loadFromLS('clubs_'+r.round_id) || {};
+    Object.entries(cf).forEach(([club, fb]) => {
+      if (!totals[club]) totals[club] = { verde: 0, amarillo: 0, rojo: 0 };
+      if (fb.rating) totals[club][fb.rating]++;
+    });
+  });
+  return totals;
+}
+
+function prefillHcp() {
+  const rounds = loadRounds().filter(r => r.hcp_index);
+  if (!rounds.length) return;
+  const hcpEl = document.getElementById('hcp-input');
+  if (hcpEl && !hcpEl.value) hcpEl.value = rounds[0].hcp_index;
 }
 
 function renderHome() {
@@ -603,13 +654,22 @@ function renderHome() {
     const avgGir = girRounds.length
       ? Math.round(girRounds.reduce((a,r) => a + r.greens_in_regulation/r.holes_played*100, 0) / girRounds.length)
       : null;
-    const fwRounds = done.filter(r => r.fairways_hit != null && r.holes_played);
+    // Fairways: usar fairway_holes (no-par-3 count) como denominador si está disponible
+    const fwRounds = done.filter(r => r.fairways_hit != null && (r.fairway_holes || r.holes_played));
     const avgFw = fwRounds.length
-      ? Math.round(fwRounds.reduce((a,r) => a + r.fairways_hit/r.holes_played*100, 0) / fwRounds.length)
+      ? Math.round(fwRounds.reduce((a,r) => a + r.fairways_hit/(r.fairway_holes || r.holes_played)*100, 0) / fwRounds.length)
       : null;
+    const hcpIndex = calcHandicapIndex(done);
 
     const fmtDiff = v => v > 0 ? '+'+v.toFixed(1) : v === 0 ? 'E' : v.toFixed(1);
     const fmtBest = v => v > 0 ? '+'+v : v === 0 ? 'E' : String(v);
+
+    // Club stats
+    const clubStats = getAllClubStats();
+    const byGreen = Object.entries(clubStats).sort((a,b) => b[1].verde - a[1].verde);
+    const byRed   = Object.entries(clubStats).sort((a,b) => b[1].rojo  - a[1].rojo);
+    const topClub = byGreen[0]?.[1].verde > 0 ? byGreen[0] : null;
+    const badClub = byRed[0]?.[1].rojo   > 0 ? byRed[0]   : null;
 
     statsEl.innerHTML = `
       <div class="stats-grid" style="margin-top:8px;">
@@ -618,20 +678,27 @@ function renderHome() {
           <div class="stat-lbl">Rondas</div>
         </div>
         <div class="stat-card">
-          <div class="stat-val">${fmtDiff(avg)}</div>
-          <div class="stat-lbl">Promedio</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-val green">${fmtBest(best)}</div>
           <div class="stat-lbl">Mejor ronda</div>
         </div>
         <div class="stat-card">
+          <div class="stat-val">${fmtDiff(avg)}</div>
+          <div class="stat-lbl">Promedio</div>
+        </div>
+        ${hcpIndex !== null ? `<div class="stat-card"><div class="stat-val">${hcpIndex}</div><div class="stat-lbl">HCP Index</div></div>` : ''}
+        <div class="stat-card">
           <div class="stat-val">${avgPutts || '—'}</div>
           <div class="stat-lbl">Putts / hoyo</div>
         </div>
-        ${avgGir !== null ? `<div class="stat-card"><div class="stat-val">${avgGir}%</div><div class="stat-lbl">GIR prom.</div></div>` : ''}
-        ${avgFw !== null ? `<div class="stat-card"><div class="stat-val">${avgFw}%</div><div class="stat-lbl">Fairways prom.</div></div>` : ''}
-      </div>`;
+        ${avgFw !== null ? `<div class="stat-card"><div class="stat-val">${avgFw}%</div><div class="stat-lbl">Fairways</div></div>` : ''}
+        ${avgGir !== null ? `<div class="stat-card"><div class="stat-val">${avgGir}%</div><div class="stat-lbl">GIR</div></div>` : ''}
+      </div>
+      ${topClub || badClub ? `
+        <div class="section-title" style="margin-top:20px;">Palos</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          ${topClub ? `<div class="stat-card"><div style="font-size:10px;color:var(--green);letter-spacing:1px;margin-bottom:4px;">MEJOR</div><div style="font-size:15px;font-weight:500;">${topClub[0]}</div><div style="font-size:11px;color:var(--muted);">🟢 ${topClub[1].verde}x</div></div>` : ''}
+          ${badClub ? `<div class="stat-card"><div style="font-size:10px;color:var(--red);letter-spacing:1px;margin-bottom:4px;">A TRABAJAR</div><div style="font-size:15px;font-weight:500;">${badClub[0]}</div><div style="font-size:11px;color:var(--muted);">🔴 ${badClub[1].rojo}x</div></div>` : ''}
+        </div>` : ''}`;
   } else {
     statsEl.innerHTML = '';
   }
@@ -654,7 +721,17 @@ function renderHistory() {
     return;
   }
   sub.textContent = rounds.length + (rounds.length === 1 ? ' ronda' : ' rondas');
-  container.innerHTML = rounds.map(r => roundCardHTML(r)).join('');
+  container.innerHTML = rounds.map(r => roundCardHTML(r, true)).join('');
+}
+
+function deleteRound(round_id) {
+  if (!confirm('¿Borrar esta ronda? No se puede deshacer.')) return;
+  const rounds = loadRounds().filter(r => r.round_id !== round_id);
+  saveToLS('rounds', rounds);
+  localStorage.removeItem('golfie_holes_'+round_id);
+  localStorage.removeItem('golfie_clubs_'+round_id);
+  renderHistory();
+  renderHome();
 }
 
 // ==================== AUTOCOMPLETE ====================
@@ -886,6 +963,7 @@ function finishRound() {
     par_total: totalPar,
     total_putts: totalPutts,
     fairways_hit: fairways,
+    fairway_holes: fairwayHoles,
     greens_in_regulation: girs,
     holes_played: holes.length,
     completed: holes.length >= 18
