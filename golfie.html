@@ -590,7 +590,7 @@ function roundCardHTML(r, deletable=false) {
   const diffStr = diff > 0 ? '+'+diff : diff < 0 ? String(diff) : 'E';
   return `<div class="round-card" onclick="viewRound('${r.round_id}')">
     <div class="round-card-left">
-      <div class="course">${r.course_name}</div>
+      <div class="course">${r.course_name || '—'}</div>
       <div class="date">${formatDate(r.date)} · ${r.tees || ''}</div>
     </div>
     <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
@@ -1139,15 +1139,26 @@ async function syncFromServer() {
     const serverRounds = await rRes.json();
     if (Array.isArray(serverRounds) && serverRounds.length) {
       const localRounds = loadRounds();
-      const merged = [...serverRounds];
-      localRounds.forEach(lr => {
-        const idx = merged.findIndex(r => r.round_id === lr.round_id);
-        if (idx === -1) {
-          merged.push(lr);
-        } else if (lr.total_score || lr.completed) {
-          merged[idx] = lr; // local tiene datos completos, tiene prioridad
-        }
+      const localMap = {};
+      localRounds.forEach(lr => { if (lr.round_id) localMap[lr.round_id] = lr; });
+
+      // Merge por campo: base = servidor, campos locales no-vacíos ganan
+      const validServer = serverRounds.filter(r => r.round_id && String(r.round_id).trim());
+      const merged = validServer.map(sr => {
+        const lr = localMap[sr.round_id];
+        if (!lr) return sr;
+        const result = { ...sr };
+        Object.keys(lr).forEach(k => {
+          if (lr[k] !== undefined && lr[k] !== null && lr[k] !== '') result[k] = lr[k];
+        });
+        return result;
       });
+
+      // Agregar rondas que sólo están en local
+      localRounds.forEach(lr => {
+        if (lr.round_id && !validServer.find(r => r.round_id === lr.round_id)) merged.push(lr);
+      });
+
       merged.sort((a, b) => new Date(b.date) - new Date(a.date));
       saveToLS('rounds', merged);
     }
