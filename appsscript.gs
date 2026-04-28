@@ -129,9 +129,10 @@ function addClubFeedback(d) {
 function getOrCreateSheet(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-    if (headers.length) {
+  if (!sheet) sheet = ss.insertSheet(name);
+  if (headers.length) {
+    const existing = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+    if (existing.join('|') !== headers.join('|')) {
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
       sheet.setFrozenRows(1);
