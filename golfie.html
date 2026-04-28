@@ -313,6 +313,7 @@
     <div class="logo-sub">Tu juego, en datos</div>
     <div id="sync-status" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px;"></div>
   </div>
+  <div id="debug-panel" style="display:none;margin:8px 20px;background:#1e1e1e;border:1px solid #f87171;border-radius:10px;padding:12px;font-size:11px;color:#f87171;word-break:break-all;white-space:pre-wrap;"></div>
   <div style="padding: 16px 24px 90px; flex: 1;">
     <div id="home-stats"></div>
     <div class="recent-list">
@@ -574,9 +575,7 @@ function saveCourse(course) {
 }
 
 function loadRounds() {
-  const rounds = loadFromLS('rounds') || [];
-  if (rounds.length) console.log('[Golfie debug] primer round:', JSON.stringify(rounds[0]));
-  return rounds;
+  return loadFromLS('rounds') || [];
 }
 
 function saveRoundToLS(round) {
@@ -648,6 +647,11 @@ function prefillHcp() {
 function renderHome() {
   loadCourses();
   const rounds = loadRounds();
+  const dbg = document.getElementById('debug-panel');
+  if (dbg && rounds.length) {
+    dbg.style.display = 'block';
+    dbg.textContent = 'DEBUG (temporal):\n' + JSON.stringify(rounds[0], null, 2);
+  }
   const done = rounds.filter(r => r.completed && r.total_score);
 
   const statsEl = document.getElementById('home-stats');
