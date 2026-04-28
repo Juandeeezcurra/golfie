@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Golfie</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.svg">
+<link rel="apple-touch-icon" sizes="152x152" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4ade80">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,7 +43,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   /* NAV */
-  .nav { padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center; }
+  .nav { padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 0; display: flex; justify-content: space-between; align-items: center; }
   .nav-back { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
   .nav-back:active { opacity: 0.7; }
 
@@ -233,7 +234,7 @@
     position: fixed; bottom: 0; left: 0; right: 0;
     height: 72px; background: var(--surface); border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-around;
-    z-index: 100; padding: 0 24px; overflow: hidden;
+    z-index: 100; padding: 0 24px; overflow: visible;
   }
   #nav-floor {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -250,13 +251,13 @@
   .bn-btn.active { color: var(--green); }
   .bn-btn svg { width: 22px; height: 22px; stroke-width: 1.8; }
   .bn-center {
-    width: 56px; height: 56px; border-radius: 50%; background: var(--green);
+    width: 68px; height: 68px; border-radius: 50%; background: var(--green);
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: #0a0a0a; box-shadow: 0 4px 20px rgba(74,222,128,0.35); flex-shrink: 0;
-    transition: transform 0.1s, opacity 0.1s;
+    color: #0a0a0a; box-shadow: 0 4px 24px rgba(74,222,128,0.45); flex-shrink: 0;
+    transition: transform 0.1s, opacity 0.1s; margin-top: -22px;
   }
   .bn-center:active { transform: scale(0.93); opacity: 0.85; }
-  .bn-center svg { width: 28px; height: 28px; stroke-width: 2.5; }
+  .bn-center svg { width: 32px; height: 32px; stroke-width: 3; }
 
   /* TOAST */
   .toast {
@@ -280,7 +281,7 @@
 
   /* HISTORY */
   #history { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-  .history-header { padding: 48px 24px 16px; }
+  .history-header { padding: calc(env(safe-area-inset-top, 0px) + 80px) 24px 16px; }
   .history-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; }
   .history-sub { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
   .history-list { padding: 0 24px; display: flex; flex-direction: column; gap: 10px; }
@@ -306,7 +307,7 @@
     Inicio
   </button>
   <button class="bn-center" onclick="goTo('new-round')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>
   <button class="bn-btn" id="bn-history" onclick="switchTab('history')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
@@ -593,18 +594,26 @@ function saveRoundToLS(round) {
 }
 
 // ==================== HOME ====================
+const TEE_COLORS = { 'Negros': '#666', 'Azules': '#3b82f6', 'Blancos': '#e5e5e5', 'Amarillos': '#fbbf24', 'Rojos': '#f87171' };
+
 function roundCardHTML(r, deletable=false) {
   const diff = r.total_score - r.par_total;
   const diffStr = diff > 0 ? '+'+diff : diff < 0 ? String(diff) : 'E';
+  const diffColor = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--muted)';
+  const teeBall = r.tees && TEE_COLORS[r.tees]
+    ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${TEE_COLORS[r.tees]};border:1px solid rgba(255,255,255,0.2);flex-shrink:0;"></span>`
+    : '';
   return `<div class="round-card" onclick="viewRound('${r.round_id}')">
     <div class="round-card-left">
-      <div class="course">${r.course_name || '—'}</div>
-      <div class="date">${formatDate(r.date)} · ${r.tees || ''}</div>
+      <div class="course" style="display:flex;align-items:center;gap:6px;">${teeBall}${r.course_name || '—'}</div>
+      <div class="date">${formatDate(r.date)}${r.tees ? ' · ' + r.tees : ''}</div>
     </div>
     <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
-      <div>
+      <div style="display:flex;align-items:flex-start;gap:3px;">
         <div class="score-big">${r.total_score || '—'}</div>
-        <div class="score-label">${r.total_score ? diffStr : 'En curso'}</div>
+        ${r.total_score
+          ? `<span style="font-size:12px;font-weight:600;color:${diffColor};margin-top:7px;line-height:1;">${diffStr}</span>`
+          : `<span style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1;">En curso</span>`}
       </div>
       ${deletable ? `<button class="delete-round-btn" onclick="event.stopPropagation();deleteRound('${r.round_id}')" title="Borrar">✕</button>` : ''}
     </div>
