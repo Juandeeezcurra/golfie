@@ -1141,7 +1141,12 @@ async function syncFromServer() {
       const localRounds = loadRounds();
       const merged = [...serverRounds];
       localRounds.forEach(lr => {
-        if (!merged.find(r => r.round_id === lr.round_id)) merged.push(lr);
+        const idx = merged.findIndex(r => r.round_id === lr.round_id);
+        if (idx === -1) {
+          merged.push(lr);
+        } else if (lr.total_score || lr.completed) {
+          merged[idx] = lr; // local tiene datos completos, tiene prioridad
+        }
       });
       merged.sort((a, b) => new Date(b.date) - new Date(a.date));
       saveToLS('rounds', merged);
