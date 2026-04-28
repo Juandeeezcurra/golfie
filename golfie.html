@@ -574,7 +574,9 @@ function saveCourse(course) {
 }
 
 function loadRounds() {
-  return loadFromLS('rounds') || [];
+  const rounds = loadFromLS('rounds') || [];
+  if (rounds.length) console.log('[Golfie debug] primer round:', JSON.stringify(rounds[0]));
+  return rounds;
 }
 
 function saveRoundToLS(round) {
