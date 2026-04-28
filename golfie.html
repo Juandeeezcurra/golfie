@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Golfie</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -193,7 +193,7 @@
   .stat-val.green { color: var(--green); }
   .stat-lbl { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   .holes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-  .hole-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .hole-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; }
   .hc-num { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
   .hc-par { font-size: 10px; color: var(--muted); }
   .hc-score-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; position: relative; }
@@ -233,12 +233,12 @@
     position: fixed; bottom: 0; left: 0; right: 0;
     height: 72px; background: var(--surface); border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-around;
-    z-index: 100; padding: 0 24px;
+    z-index: 100; padding: 0 24px; overflow: hidden;
   }
-  .bottom-nav::after {
-    content: ''; position: absolute; top: 100%; left: 0; right: 0;
+  #nav-floor {
+    position: fixed; bottom: 0; left: 0; right: 0;
     height: env(safe-area-inset-bottom); background: var(--surface);
-    pointer-events: none;
+    z-index: 99; pointer-events: none;
   }
   .bottom-nav.hidden { display: none; }
   .bn-btn {
@@ -295,6 +295,9 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- SAFE AREA FLOOR -->
+<div id="nav-floor"></div>
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav" id="bottom-nav">
@@ -1038,10 +1041,12 @@ function renderDashboard(round, holes) {
   const worstClub = Object.entries(state.clubFeedback).find(([_,f]) => f.rating === 'rojo');
 
   document.getElementById('dashboard-content').innerHTML = `
-    <div class="dash-hero" style="position:relative;">
+    <div class="dash-hero">
       <div style="font-size:13px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Score Final</div>
-      <div class="dash-score">${round.total_score}</div>
-      <div style="position:absolute; right:0; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--muted); line-height:1;">${diffStr}</div>
+      <div style="display:flex; align-items:baseline; justify-content:center; gap:10px;">
+        <div class="dash-score">${round.total_score}</div>
+        <div style="font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--muted); line-height:1;">${diffStr}</div>
+      </div>
       <div class="dash-course">${round.course_name}</div>
       <div class="dash-date">${formatDate(round.date)} · ${round.tees||''}</div>
     </div>
