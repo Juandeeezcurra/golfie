@@ -249,6 +249,17 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* TEES SELECTOR */
+  .tees-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tee-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+    font-size: 12px; color: var(--muted);
+  }
+  .tee-btn.active { border-color: var(--tb); background: color-mix(in srgb, var(--tb) 15%, transparent); color: var(--text); }
+  .tee-ball { width: 32px; height: 32px; border-radius: 50%; }
+
   /* HISTORY */
   #history { padding-bottom: 80px; }
   .history-header { padding: 48px 24px 16px; }
@@ -324,7 +335,25 @@
 
     <div class="field">
       <label class="label">Tees</label>
-      <input class="input" id="tees-input" placeholder="Ej: Blancos, Azules...">
+      <input type="hidden" id="tees-input">
+      <div class="tees-selector">
+        <button type="button" class="tee-btn" data-tee="Negros" onclick="selectTee(this)" style="--tc:#1a1a1a; --tb:#555;">
+          <div class="tee-ball" style="background:#2a2a2a; border:2px solid #666;"></div>
+          <span>Negros</span>
+        </button>
+        <button type="button" class="tee-btn" data-tee="Azules" onclick="selectTee(this)" style="--tc:#1a3a5c; --tb:#3b82f6;">
+          <div class="tee-ball" style="background:#3b82f6; border:2px solid #60a5fa;"></div>
+          <span>Azules</span>
+        </button>
+        <button type="button" class="tee-btn" data-tee="Blancos" onclick="selectTee(this)" style="--tc:#2a2a2a; --tb:#e5e5e5;">
+          <div class="tee-ball" style="background:#e5e5e5; border:2px solid #fff;"></div>
+          <span>Blancos</span>
+        </button>
+        <button type="button" class="tee-btn" data-tee="Amarillos" onclick="selectTee(this)" style="--tc:#3a2e00; --tb:#fbbf24;">
+          <div class="tee-ball" style="background:#fbbf24; border:2px solid #fde68a;"></div>
+          <span>Amarillos</span>
+        </button>
+      </div>
     </div>
 
     <div class="row-2">
@@ -642,12 +671,20 @@ function filterCourses(val) {
   ).join('');
 }
 
+function selectTee(btn) {
+  document.querySelectorAll('.tee-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tees-input').value = btn.dataset.tee;
+}
+
 function selectCourse(name, tees, slope, rating) {
   document.getElementById('course-input').value = name;
-  document.getElementById('tees-input').value = tees;
   document.getElementById('slope-input').value = slope;
   document.getElementById('rating-input').value = rating;
   document.getElementById('autocomplete-list').style.display = 'none';
+  const match = document.querySelector(`.tee-btn[data-tee="${tees}"]`);
+  if (match) selectTee(match);
+  else document.getElementById('tees-input').value = tees;
 }
 
 document.addEventListener('click', e => {
