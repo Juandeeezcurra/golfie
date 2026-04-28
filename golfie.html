@@ -179,16 +179,34 @@
   .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--text); line-height: 1; }
   .stat-val.green { color: var(--green); }
   .stat-lbl { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-  .holes-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
-  .hole-pill {
-    width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-family: 'Bebas Neue', sans-serif; font-size: 18px; border: 1px solid var(--border);
-  }
-  .hole-pill.eagle { background: #ffd700; color: #0a0a0a; }
-  .hole-pill.birdie { background: var(--green); color: #0a0a0a; }
-  .hole-pill.par { background: var(--surface2); color: var(--text); }
-  .hole-pill.bogey { background: #3a1a1a; color: var(--red); border-color: var(--red); }
-  .hole-pill.double { background: #4a0a0a; color: var(--red); border-color: var(--red); }
+  .holes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+  .hole-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .hc-num { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .hc-par { font-size: 10px; color: var(--muted); }
+  .hc-score-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .hc-score { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; position: relative; z-index: 1; }
+  /* Eagle: doble círculo */
+  .hole-card.eagle .hc-score-wrap { border: 2px solid #ffd700; border-radius: 50%; }
+  .hole-card.eagle .hc-score-wrap::before { content:''; position:absolute; inset:-6px; border:2px solid #ffd700; border-radius:50%; }
+  .hole-card.eagle .hc-score { color: #ffd700; }
+  /* Birdie: círculo */
+  .hole-card.birdie .hc-score-wrap { border: 2px solid var(--green); border-radius: 50%; }
+  .hole-card.birdie .hc-score { color: var(--green); }
+  /* Par: cuadrado */
+  .hole-card.par .hc-score-wrap { border: 2px solid var(--muted); border-radius: 3px; }
+  .hole-card.par .hc-score { color: var(--text); }
+  /* Bogey: cuadrado rojo */
+  .hole-card.bogey .hc-score-wrap { border: 2px solid var(--red); border-radius: 3px; }
+  .hole-card.bogey .hc-score { color: var(--red); }
+  /* Doble bogey: doble cuadrado */
+  .hole-card.double .hc-score-wrap { border: 2px solid var(--red); border-radius: 3px; }
+  .hole-card.double .hc-score-wrap::before { content:''; position:absolute; inset:-6px; border:2px solid var(--red); border-radius:3px; }
+  .hole-card.double .hc-score { color: var(--red); }
+  /* Triple+: triple cuadrado */
+  .hole-card.triple .hc-score-wrap { border: 2px solid #8b0000; border-radius: 3px; }
+  .hole-card.triple .hc-score-wrap::before { content:''; position:absolute; inset:-6px; border:2px solid #8b0000; border-radius:3px; }
+  .hole-card.triple .hc-score-wrap::after { content:''; position:absolute; inset:-12px; border:2px solid #8b0000; border-radius:3px; }
+  .hole-card.triple .hc-score { color: #8b0000; }
   .club-feedback-summary { margin: 16px 0; }
   .club-feedback-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
   .club-feedback-row:last-child { border-bottom: none; }
@@ -401,8 +419,8 @@ let state = {
   courses: []
 };
 
-const CLUBS = ['Driver','Madera 3','Hierro 4','Hierro 5','Hierro 6','Hierro 7','Hierro 8','Hierro 9','Wedge 50','Wedge 54','Wedge 58','Putter'];
-const TAGS = ['Corto','Largo','Perfecto','Slice','Hook','Recto','Filazo','Topo','Limpio','Gordo','Inconsistente','Sólido'];
+const CLUBS = ['Driver','Madera','Híbrido','Hierro 3','Hierro 4','Hierro 5','Hierro 6','Hierro 7','Hierro 8','Hierro 9','Wedge 52','Wedge 56','Wedge 60','Putter'];
+const TAGS = ['Corto','Largo','Perfecto','Slice','Hook','Recto','Filazo','Inconsistente','Sólido'];
 
 // ==================== UTILS ====================
 function goTo(screen) {
@@ -744,7 +762,8 @@ function renderDashboard(round, holes) {
     if (d === -1) return 'birdie';
     if (d === 0) return 'par';
     if (d === 1) return 'bogey';
-    return 'double';
+    if (d === 2) return 'double';
+    return 'triple';
   }
 
   const hcpDiff = round.slope_rating && round.course_rating
@@ -777,9 +796,13 @@ function renderDashboard(round, holes) {
     </div>
 
     <div class="section-title">Hoyo a hoyo</div>
-    <div class="holes-summary">
+    <div class="holes-grid">
       ${holes.sort((a,b)=>a.hole_number-b.hole_number).map(h =>
-        `<div class="hole-pill ${holeClass(h.score,h.par)}" title="Hoyo ${h.hole_number}: ${h.score}">${h.score}</div>`
+        `<div class="hole-card ${holeClass(h.score,h.par)}">
+          <div class="hc-num">Hoyo ${h.hole_number}</div>
+          <div class="hc-score-wrap"><div class="hc-score">${h.score}</div></div>
+          <div class="hc-par">Par ${h.par}</div>
+        </div>`
       ).join('')}
     </div>
 
