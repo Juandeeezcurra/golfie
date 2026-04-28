@@ -298,6 +298,7 @@
   <div style="padding: 48px 24px 0;">
     <div class="logo">Golfie</div>
     <div class="logo-sub">Tu juego, en datos</div>
+    <div id="sync-status" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px;"></div>
   </div>
   <div style="padding: 16px 24px 90px; flex: 1;">
     <div id="home-stats"></div>
@@ -1041,13 +1042,68 @@ async function flushPending() {
   saveToLS('pending_sync', failed);
 }
 
+// ==================== SYNC FROM SERVER ====================
+async function syncFromServer() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+  const statusEl = document.getElementById('sync-status');
+  try {
+    if (statusEl) statusEl.textContent = 'Actualizando...';
+
+    // Rounds
+    const rRes = await fetch(APPS_SCRIPT_URL + '?action=getRounds');
+    const serverRounds = await rRes.json();
+    if (Array.isArray(serverRounds) && serverRounds.length) {
+      const localRounds = loadRounds();
+      const merged = [...serverRounds];
+      localRounds.forEach(lr => {
+        if (!merged.find(r => r.round_id === lr.round_id)) merged.push(lr);
+      });
+      merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+      saveToLS('rounds', merged);
+    }
+
+    // Holes — store per round as { hole_number: holeData }
+    const hRes = await fetch(APPS_SCRIPT_URL + '?action=getHoles');
+    const serverHoles = await hRes.json();
+    if (Array.isArray(serverHoles)) {
+      const grouped = {};
+      serverHoles.forEach(h => {
+        if (!grouped[h.round_id]) grouped[h.round_id] = {};
+        grouped[h.round_id][h.hole_number] = h;
+      });
+      Object.entries(grouped).forEach(([rid, holes]) => saveToLS('holes_'+rid, holes));
+    }
+
+    // Club feedback — store per round as { club: { rating, tags[] } }
+    const cRes = await fetch(APPS_SCRIPT_URL + '?action=getClubFeedback');
+    const serverCF = await cRes.json();
+    if (Array.isArray(serverCF)) {
+      const grouped = {};
+      serverCF.forEach(cf => {
+        if (!grouped[cf.round_id]) grouped[cf.round_id] = {};
+        grouped[cf.round_id][cf.club] = {
+          rating: cf.rating || '',
+          tags: cf.tags ? String(cf.tags).split(',').filter(Boolean) : []
+        };
+      });
+      Object.entries(grouped).forEach(([rid, cf]) => saveToLS('clubs_'+rid, cf));
+    }
+
+    renderHome();
+    if (statusEl) statusEl.textContent = '';
+  } catch(e) {
+    console.warn('Sync from server failed:', e);
+    if (statusEl) statusEl.textContent = '';
+  }
+}
+
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
   loadCourses();
   renderHome();
   initClubFeedback();
-  // Try to flush any pending syncs on load
   flushPending();
+  syncFromServer();
 });
 </script>
 </body>

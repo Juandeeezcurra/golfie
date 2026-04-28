@@ -148,19 +148,32 @@ function setCell(sheet, row, headers, field, value) {
 // ==================== GET (opcional) ====================
 function doGet(e) {
   const action = e.parameter.action;
+
   if (action === 'getRounds') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Rounds');
-    if (!sheet) return jsonOut([]);
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const rows = data.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((h,i) => obj[h] = row[i]);
-      return obj;
-    });
-    return jsonOut(rows);
+    return jsonOut(sheetToObjects('Rounds'));
   }
+
+  if (action === 'getHoles') {
+    return jsonOut(sheetToObjects('Holes'));
+  }
+
+  if (action === 'getClubFeedback') {
+    return jsonOut(sheetToObjects('ClubFeedback'));
+  }
+
   return jsonOut({ error: 'Unknown action' });
+}
+
+function sheetToObjects(name) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
 }
 
 function jsonOut(data) {
