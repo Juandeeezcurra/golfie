@@ -1,47 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#1e4a20"/>
-      <stop offset="100%" stop-color="#0b1e0c"/>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="#1e4020"/>
+      <stop offset="100%" stop-color="#0c1e0e"/>
     </radialGradient>
-    <radialGradient id="hillGrad" cx="50%" cy="20%" r="75%">
-      <stop offset="0%" stop-color="#7ed44e"/>
-      <stop offset="60%" stop-color="#5ab832"/>
-      <stop offset="100%" stop-color="#3a8a1e"/>
+    <!-- Radial gradient centered at top of dome for 3D sphere effect -->
+    <radialGradient id="hillGrad" cx="50%" cy="12%" r="90%">
+      <stop offset="0%" stop-color="#a8e464"/>
+      <stop offset="30%" stop-color="#78cc40"/>
+      <stop offset="65%" stop-color="#4ea020"/>
+      <stop offset="100%" stop-color="#286010"/>
     </radialGradient>
-    <radialGradient id="hillSide" cx="50%" cy="60%" r="70%">
-      <stop offset="0%" stop-color="#4ea828"/>
-      <stop offset="100%" stop-color="#2d6e14"/>
-    </radialGradient>
-    <radialGradient id="flagGrad" cx="20%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#ff4444"/>
-      <stop offset="100%" stop-color="#cc1111"/>
-    </radialGradient>
-    <filter id="hillShadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="rgba(0,0,0,0.4)"/>
+    <linearGradient id="hillFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3e8a18"/>
+      <stop offset="100%" stop-color="#1c5008"/>
+    </linearGradient>
+    <linearGradient id="flagGrad" x1="0%" y1="0%" x2="100%" y2="60%">
+      <stop offset="0%" stop-color="#ff5252"/>
+      <stop offset="100%" stop-color="#cc1010"/>
+    </linearGradient>
+    <filter id="hillShadow" x="-15%" y="-15%" width="130%" height="145%">
+      <feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="rgba(0,0,0,0.5)"/>
     </filter>
   </defs>
 
-  <!-- Background rounded square -->
+  <!-- Background -->
   <rect width="1024" height="1024" rx="224" fill="url(#bgGrad)"/>
 
   <!-- Hill dome top surface -->
-  <ellipse cx="512" cy="640" rx="360" ry="200" fill="url(#hillGrad)" filter="url(#hillShadow)"/>
+  <ellipse cx="512" cy="648" rx="358" ry="198" fill="url(#hillGrad)" filter="url(#hillShadow)"/>
 
-  <!-- Hill front face (slightly darker) -->
-  <ellipse cx="512" cy="700" rx="360" ry="160" fill="url(#hillSide)"/>
+  <!-- Hill front face (depth band) -->
+  <ellipse cx="512" cy="716" rx="358" ry="142" fill="url(#hillFront)"/>
 
-  <!-- Hole in the green -->
-  <ellipse cx="530" cy="618" rx="34" ry="22" fill="#0c1a0c"/>
-  <ellipse cx="530" cy="614" rx="30" ry="18" fill="#0a1409"/>
+  <!-- Hole -->
+  <ellipse cx="458" cy="636" rx="40" ry="25" fill="#0a1208"/>
+  <ellipse cx="456" cy="631" rx="29" ry="18" fill="#050c05"/>
 
   <!-- Flagpole -->
-  <rect x="540" y="190" width="12" height="428" rx="6" fill="white"/>
+  <rect x="504" y="185" width="11" height="468" rx="5" fill="white"/>
 
-  <!-- Waving flag -->
-  <path d="M552 190 C600 200, 680 218, 720 240 C680 262, 600 278, 552 290 Z" fill="url(#flagGrad)"/>
-  <path d="M552 190 C600 202, 680 220, 720 240 C700 245, 640 255, 600 258 C580 245, 560 225, 552 210 Z" fill="rgba(255,100,100,0.3)"/>
+  <!-- Flag body -->
+  <path d="M515 188 C558 197, 648 220, 695 248 C648 270, 558 288, 515 296 Z" fill="url(#flagGrad)"/>
+  <!-- Flag shading highlight -->
+  <path d="M515 188 C558 198, 648 222, 695 248 C672 252, 628 258, 590 260 C568 248, 538 224, 515 206 Z" fill="rgba(255,140,140,0.2)"/>
 
-  <!-- Text GOLFIE -->
-  <text x="512" y="870" font-family="'Helvetica Neue', Arial, sans-serif" font-size="96" font-weight="300" fill="white" text-anchor="middle" letter-spacing="28" opacity="0.95">GOLFIE</text>
+  <!-- Text -->
+  <text x="512" y="882"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-size="90"
+    font-weight="300"
+    fill="white"
+    text-anchor="middle"
+    letter-spacing="30"
+    opacity="0.95">GOLFIE</text>
 </svg>
