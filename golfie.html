@@ -99,7 +99,8 @@
     width: 100%; padding: 18px; background: var(--green); color: #0a0a0a;
     border: none; border-radius: var(--radius); font-family: 'Bebas Neue', sans-serif;
     font-size: 22px; letter-spacing: 1px; cursor: pointer; margin-top: 12px;
-    transition: transform 0.1s; position: sticky; bottom: 20px;
+    transition: transform 0.1s; position: sticky;
+    bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 8px));
   }
   .primary-btn:active { transform: scale(0.98); }
   .secondary-btn {
@@ -231,17 +232,17 @@
 
   /* BOTTOM NAV */
   .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
+    position: fixed; bottom: env(safe-area-inset-bottom, 0px); left: 0; right: 0;
     height: 72px; background: var(--surface); border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-around;
     z-index: 100; padding: 0 24px; overflow: visible;
   }
-  #nav-floor {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: env(safe-area-inset-bottom); background: var(--surface);
-    z-index: 99; pointer-events: none;
+  .bottom-nav::after {
+    content: ''; position: absolute; top: 72px; left: 0; right: 0;
+    height: env(safe-area-inset-bottom, 0px); background: var(--surface);
   }
-  .bottom-nav.hidden { display: none; }
+  #nav-floor { display: none; }
+  .bottom-nav.hidden { display: none !important; pointer-events: none; }
   .bn-btn {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
     background: none; border: none; color: var(--muted); cursor: pointer;
@@ -253,8 +254,9 @@
   .bn-center {
     width: 68px; height: 68px; border-radius: 50%; background: var(--green);
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: #0a0a0a; box-shadow: 0 4px 24px rgba(74,222,128,0.45); flex-shrink: 0;
-    transition: transform 0.1s, opacity 0.1s; margin-top: -22px;
+<<<<<<< HEAD
+    color: #0a0a0a; box-shadow: 0 2px 10px rgba(74,222,128,0.2); flex-shrink: 0;
+    transition: transform 0.1s, opacity 0.1s;
   }
   .bn-center:active { transform: scale(0.93); opacity: 0.85; }
   .bn-center svg { width: 32px; height: 32px; stroke-width: 3; }
@@ -281,7 +283,7 @@
 
   /* HISTORY */
   #history { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-  .history-header { padding: calc(env(safe-area-inset-top, 0px) + 80px) 24px 16px; }
+  .history-header { padding: calc(env(safe-area-inset-top, 0px) + 16px) 24px 16px; }
   .history-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; }
   .history-sub { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
   .history-list { padding: 0 24px; display: flex; flex-direction: column; gap: 10px; }
@@ -290,12 +292,51 @@
   .saving-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); margin-right: 6px; animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
   .saved-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+
+  /* CUSTOM MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    backdrop-filter: blur(6px); animation: fadeIn 0.2s ease;
+  }
+  .modal-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 24px; width: 100%; max-width: 340px;
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; margin-bottom: 10px;
+  }
+  .modal-body { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-cancel {
+    flex: 1; padding: 14px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; cursor: pointer;
+  }
+  .modal-confirm {
+    flex: 1; padding: 14px; background: var(--red); border: none;
+    border-radius: var(--radius-sm); color: #fff; font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 0.5px; cursor: pointer;
+  }
+  .modal-confirm.safe { background: var(--green); color: #0a0a0a; }
 </style>
 </head>
 <body>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- CUSTOM MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modal-cancel">Cancelar</button>
+      <button class="modal-confirm" id="modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <!-- SAFE AREA FLOOR -->
 <div id="nav-floor"></div>
@@ -539,7 +580,7 @@ function goTo(screen) {
   document.getElementById('bottom-nav').classList.toggle('hidden', !tabScreens.includes(screen));
   if (screen === 'home') renderHome();
   if (screen === 'history') renderHistory();
-  if (screen === 'new-round') prefillHcp();
+  if (screen === 'new-round') { loadCourses(); prefillHcp(); }
   window.scrollTo(0,0);
 }
 
@@ -569,7 +610,17 @@ function saveToLS(key, val) { localStorage.setItem('golfie_'+key, JSON.stringify
 function loadFromLS(key) { try { return JSON.parse(localStorage.getItem('golfie_'+key)); } catch { return null; } }
 
 function loadCourses() {
-  state.courses = loadFromLS('courses') || [];
+  const saved = loadFromLS('courses') || [];
+  const rounds = loadRounds();
+  const merged = [...saved];
+  const names = saved.map(c => c.name.toLowerCase());
+  rounds.forEach(r => {
+    if (r.course_name && !names.includes(r.course_name.toLowerCase())) {
+      merged.push({ name: r.course_name, tees: r.tees || '', slope: r.slope_rating || '', rating: r.course_rating || '' });
+      names.push(r.course_name.toLowerCase());
+    }
+  });
+  state.courses = merged;
 }
 
 function saveCourse(course) {
@@ -594,11 +645,20 @@ function saveRoundToLS(round) {
 }
 
 // ==================== HOME ====================
+<<<<<<< HEAD
 const TEE_COLORS = { 'Negros': '#666', 'Azules': '#3b82f6', 'Blancos': '#e5e5e5', 'Amarillos': '#fbbf24', 'Rojos': '#f87171' };
+=======
+function teeColor(tees) {
+  const m = { 'Negros':'#666', 'Azules':'#3b82f6', 'Blancos':'#ddd', 'Amarillos':'#fbbf24' };
+  return m[tees] || '#737373';
+}
+>>>>>>> 30e63b8 (Fix: en curso badge, tee ball, autocomplete, HCP-5, modal, icon, save-hole safe-area, resume in-progress round)
 
 function roundCardHTML(r, deletable=false) {
+  const isInProgress = !r.total_score;
   const diff = r.total_score - r.par_total;
   const diffStr = diff > 0 ? '+'+diff : diff < 0 ? String(diff) : 'E';
+<<<<<<< HEAD
   const diffColor = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--muted)';
   const teeBall = r.tees && TEE_COLORS[r.tees]
     ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${TEE_COLORS[r.tees]};border:1px solid rgba(255,255,255,0.2);flex-shrink:0;"></span>`
@@ -615,6 +675,21 @@ function roundCardHTML(r, deletable=false) {
           ? `<span style="font-size:12px;font-weight:600;color:${diffColor};margin-top:7px;line-height:1;">${diffStr}</span>`
           : `<span style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1;">En curso</span>`}
       </div>
+=======
+  const teeBall = r.tees
+    ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${teeColor(r.tees)};margin-right:5px;flex-shrink:0;"></span>`
+    : '';
+  return `<div class="round-card" onclick="viewRound('${r.round_id}')">
+    <div class="round-card-left">
+      <div class="course">${r.course_name || '—'}</div>
+      <div class="date" style="display:flex;align-items:center;">${teeBall}${formatDate(r.date)}</div>
+    </div>
+    <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
+      ${isInProgress
+        ? `<span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">En curso</span>`
+        : `<div><div class="score-big">${r.total_score}</div><div class="score-label">${diffStr}</div></div>`
+      }
+>>>>>>> 30e63b8 (Fix: en curso badge, tee ball, autocomplete, HCP-5, modal, icon, save-hole safe-area, resume in-progress round)
       ${deletable ? `<button class="delete-round-btn" onclick="event.stopPropagation();deleteRound('${r.round_id}')" title="Borrar">✕</button>` : ''}
     </div>
   </div>`;
@@ -689,6 +764,7 @@ function renderHome() {
       ? Math.round(fwRounds.reduce((a,r) => a + r.fairways_hit/r.fairway_holes*100, 0) / fwRounds.length)
       : null;
     const hcpIndex = calcHandicapIndex(done);
+    const hcpLast5 = done.length > 5 ? calcHandicapIndex(done.slice(0, 5)) : null;
 
     const fmtDiff = v => v > 0 ? '+'+v.toFixed(1) : v === 0 ? 'E' : v.toFixed(1);
     const fmtBest = v => v > 0 ? '+'+v : v === 0 ? 'E' : String(v);
@@ -715,6 +791,7 @@ function renderHome() {
           <div class="stat-lbl">Promedio</div>
         </div>
         ${hcpIndex !== null ? `<div class="stat-card"><div class="stat-val">${hcpIndex}</div><div class="stat-lbl">HCP Index</div></div>` : ''}
+        ${hcpLast5 !== null ? `<div class="stat-card"><div class="stat-val">${hcpLast5}</div><div class="stat-lbl">HCP Últimas 5</div></div>` : ''}
         <div class="stat-card">
           <div class="stat-val">${avgPutts || '—'}</div>
           <div class="stat-lbl">Putts / hoyo</div>
@@ -753,14 +830,34 @@ function renderHistory() {
   container.innerHTML = rounds.map(r => roundCardHTML(r, true)).join('');
 }
 
+function showModal({ title, body, confirmText, safe, onConfirm }) {
+  const overlay = document.getElementById('modal-overlay');
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  const btn = document.getElementById('modal-confirm');
+  btn.textContent = confirmText || 'Confirmar';
+  btn.className = 'modal-confirm' + (safe ? ' safe' : '');
+  overlay.style.display = 'flex';
+  const close = () => { overlay.style.display = 'none'; };
+  document.getElementById('modal-cancel').onclick = close;
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  btn.onclick = () => { close(); onConfirm(); };
+}
+
 function deleteRound(round_id) {
-  if (!confirm('¿Borrar esta ronda? No se puede deshacer.')) return;
-  const rounds = loadRounds().filter(r => r.round_id !== round_id);
-  saveToLS('rounds', rounds);
-  localStorage.removeItem('golfie_holes_'+round_id);
-  localStorage.removeItem('golfie_clubs_'+round_id);
-  renderHistory();
-  renderHome();
+  showModal({
+    title: 'Borrar Ronda',
+    body: '¿Querés borrar esta ronda? No se puede deshacer.',
+    confirmText: 'BORRAR',
+    onConfirm: () => {
+      const rounds = loadRounds().filter(r => r.round_id !== round_id);
+      saveToLS('rounds', rounds);
+      localStorage.removeItem('golfie_holes_'+round_id);
+      localStorage.removeItem('golfie_clubs_'+round_id);
+      renderHistory();
+      renderHome();
+    }
+  });
 }
 
 // ==================== AUTOCOMPLETE ====================
@@ -937,7 +1034,13 @@ function nextHole() {
 }
 
 function confirmAbort() {
-  if (confirm('¿Salir de la ronda? Los datos guardados se mantienen.')) goTo('home');
+  showModal({
+    title: 'Salir de la Ronda',
+    body: 'Los datos guardados se mantienen. Podés retomar la ronda más tarde.',
+    confirmText: 'SALIR',
+    safe: true,
+    onConfirm: () => goTo('home')
+  });
 }
 
 // ==================== CLUB FEEDBACK ====================
@@ -1117,9 +1220,19 @@ function viewRound(round_id) {
   const round = rounds.find(r => r.round_id === round_id);
   if (!round) return;
   const savedHoles = loadFromLS('holes_'+round_id) || {};
-  const holes = Object.values(savedHoles);
   state.currentRound = round;
   state.clubFeedback = loadFromLS('clubs_'+round_id) || {};
+
+  if (!round.completed) {
+    state.holes = savedHoles;
+    const played = Object.keys(savedHoles).map(Number);
+    state.currentHole = played.length ? Math.min(Math.max(...played) + 1, 18) : 1;
+    initHoleTracker();
+    goTo('hole-tracker');
+    return;
+  }
+
+  const holes = Object.values(savedHoles);
   renderDashboard(round, holes);
   goTo('dashboard');
 }
@@ -1229,54 +1342,14 @@ function buildAppIcon() {
     const c = document.createElement('canvas');
     c.width = c.height = 180;
     const ctx = c.getContext('2d');
-    const cx = 90, cy = 90, r = 67;
-
-    // Background
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath(); ctx.arc(cx, cy, 90, 0, Math.PI*2); ctx.fill();
-
-    // Green ring
-    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.3;
-    ctx.beginPath(); ctx.arc(cx, cy, 75, 0, Math.PI*2); ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // Ball
-    const g = ctx.createRadialGradient(76, 71, 2, cx, cy, r);
-    g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#f4f4f4'); g.addColorStop(1, '#d2d2d2');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-    // Dimples (scaled from 512 design, center=256)
-    const s = r / 192;
-    const dp = [
-      [256,96],[212,130],[256,130],[300,130],
-      [190,168],[234,168],[278,168],[322,168],
-      [168,210],[212,210],[256,210],[300,210],[344,210],
-      [148,256],[192,256],[236,256],[280,256],[324,256],[364,256],
-      [168,302],[212,302],[256,302],[300,302],[344,302],
-      [190,344],[234,344],[278,344],[322,344],
-      [212,382],[256,382],[300,382],
-      [256,416]
-    ];
-    ctx.fillStyle = '#b2b2b2';
-    dp.forEach(([dx,dy]) => {
-      ctx.beginPath();
-      ctx.arc(cx+(dx-256)*s, cy+(dy-256)*s, 14*s, 0, Math.PI*2);
-      ctx.fill();
-    });
-
-    // Highlight
-    const h = ctx.createRadialGradient(72,65,0,72,65,18);
-    h.addColorStop(0,'rgba(255,255,255,0.52)'); h.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle = h;
-    ctx.save(); ctx.translate(72,65); ctx.scale(1.6,1);
-    ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    // Set apple-touch-icon (iOS home screen PNG)
-    let el = document.querySelector('link[rel="apple-touch-icon"]');
-    if (!el) { el = document.createElement('link'); el.rel = 'apple-touch-icon'; document.head.appendChild(el); }
-    el.href = c.toDataURL('image/png');
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, 180, 180);
+      let el = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!el) { el = document.createElement('link'); el.rel = 'apple-touch-icon'; document.head.appendChild(el); }
+      el.href = c.toDataURL('image/png');
+    };
+    img.src = 'icon.svg';
   } catch(e) {}
 }
 
