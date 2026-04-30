@@ -254,7 +254,6 @@
   .bn-center {
     width: 68px; height: 68px; border-radius: 50%; background: var(--green);
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-<<<<<<< HEAD
     color: #0a0a0a; box-shadow: 0 2px 10px rgba(74,222,128,0.2); flex-shrink: 0;
     transition: transform 0.1s, opacity 0.1s;
   }
@@ -645,39 +644,17 @@ function saveRoundToLS(round) {
 }
 
 // ==================== HOME ====================
-<<<<<<< HEAD
-const TEE_COLORS = { 'Negros': '#666', 'Azules': '#3b82f6', 'Blancos': '#e5e5e5', 'Amarillos': '#fbbf24', 'Rojos': '#f87171' };
-=======
 function teeColor(tees) {
-  const m = { 'Negros':'#666', 'Azules':'#3b82f6', 'Blancos':'#ddd', 'Amarillos':'#fbbf24' };
+  const m = { 'Negros':'#666', 'Azules':'#3b82f6', 'Blancos':'#e5e5e5', 'Amarillos':'#fbbf24', 'Rojos':'#f87171' };
   return m[tees] || '#737373';
 }
->>>>>>> 30e63b8 (Fix: en curso badge, tee ball, autocomplete, HCP-5, modal, icon, save-hole safe-area, resume in-progress round)
 
 function roundCardHTML(r, deletable=false) {
   const isInProgress = !r.total_score;
   const diff = r.total_score - r.par_total;
   const diffStr = diff > 0 ? '+'+diff : diff < 0 ? String(diff) : 'E';
-<<<<<<< HEAD
-  const diffColor = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--muted)';
-  const teeBall = r.tees && TEE_COLORS[r.tees]
-    ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${TEE_COLORS[r.tees]};border:1px solid rgba(255,255,255,0.2);flex-shrink:0;"></span>`
-    : '';
-  return `<div class="round-card" onclick="viewRound('${r.round_id}')">
-    <div class="round-card-left">
-      <div class="course" style="display:flex;align-items:center;gap:6px;">${teeBall}${r.course_name || '—'}</div>
-      <div class="date">${formatDate(r.date)}${r.tees ? ' · ' + r.tees : ''}</div>
-    </div>
-    <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
-      <div style="display:flex;align-items:flex-start;gap:3px;">
-        <div class="score-big">${r.total_score || '—'}</div>
-        ${r.total_score
-          ? `<span style="font-size:12px;font-weight:600;color:${diffColor};margin-top:7px;line-height:1;">${diffStr}</span>`
-          : `<span style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1;">En curso</span>`}
-      </div>
-=======
   const teeBall = r.tees
-    ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${teeColor(r.tees)};margin-right:5px;flex-shrink:0;"></span>`
+    ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${teeColor(r.tees)};border:1px solid rgba(255,255,255,0.2);margin-right:5px;flex-shrink:0;"></span>`
     : '';
   return `<div class="round-card" onclick="viewRound('${r.round_id}')">
     <div class="round-card-left">
@@ -689,7 +666,6 @@ function roundCardHTML(r, deletable=false) {
         ? `<span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">En curso</span>`
         : `<div><div class="score-big">${r.total_score}</div><div class="score-label">${diffStr}</div></div>`
       }
->>>>>>> 30e63b8 (Fix: en curso badge, tee ball, autocomplete, HCP-5, modal, icon, save-hole safe-area, resume in-progress round)
       ${deletable ? `<button class="delete-round-btn" onclick="event.stopPropagation();deleteRound('${r.round_id}')" title="Borrar">✕</button>` : ''}
     </div>
   </div>`;
