@@ -1550,6 +1550,24 @@ async function syncFromServer() {
         grouped[h.round_id][h.hole_number] = h;
       });
       Object.entries(grouped).forEach(([rid, holes]) => saveToLS('holes_'+rid, holes));
+
+      // Recalculate score for rounds that have holes but missing total_score
+      const roundsToFix = loadRounds();
+      let fixed = false;
+      roundsToFix.forEach(r => {
+        if (r.total_score) return;
+        const holesMap = grouped[r.round_id] || loadFromLS('holes_'+r.round_id);
+        if (!holesMap) return;
+        const holesArr = Object.values(holesMap);
+        if (!holesArr.length) return;
+        r.total_score = holesArr.reduce((a, h) => a + (Number(h.strokes) || 0), 0);
+        r.par_total = holesArr.reduce((a, h) => a + (Number(h.par) || 0), 0);
+        r.holes_played = holesArr.length;
+        r.total_putts = holesArr.reduce((a, h) => a + (Number(h.putts) || 0), 0);
+        if (holesArr.length >= 18) r.completed = true;
+        fixed = true;
+      });
+      if (fixed) saveToLS('rounds', roundsToFix);
     }
 
     // Club feedback — store per round as { club: { rating, tags[] } }
