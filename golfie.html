@@ -1560,7 +1560,7 @@ async function syncFromServer() {
         if (!holesMap) return;
         const holesArr = Object.values(holesMap);
         if (!holesArr.length) return;
-        r.total_score = holesArr.reduce((a, h) => a + (Number(h.strokes) || 0), 0);
+        r.total_score = holesArr.reduce((a, h) => a + (Number(h.score) || 0), 0);
         r.par_total = holesArr.reduce((a, h) => a + (Number(h.par) || 0), 0);
         r.holes_played = holesArr.length;
         r.total_putts = holesArr.reduce((a, h) => a + (Number(h.putts) || 0), 0);
