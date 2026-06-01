@@ -343,7 +343,7 @@
     }
 
     .bottom-nav {
-      top: 32px;
+      top: 48px;
       bottom: auto;
       left: max(24px, calc((100vw - 1180px) / 2 + 24px));
       right: auto;
@@ -421,6 +421,18 @@
     .logo-sub {
       font-size: 12px;
       margin-top: 6px;
+    }
+
+    #home-stats::before {
+      content: 'ESTADÍSTICAS';
+      display: block;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
     }
 
     #home-stats .stats-grid {
