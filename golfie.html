@@ -1514,12 +1514,18 @@ async function syncFromServer() {
       localRounds.forEach(lr => { if (lr.round_id) localMap[lr.round_id] = lr; });
 
       // Merge por campo: base = servidor, campos locales no-vacíos ganan
+      // Excepción: campos de estado terminal — si el servidor dice true/completado, eso gana siempre
+      const TERMINAL_FIELDS = ['completed', 'total_score', 'par_total', 'holes_played', 'total_putts', 'fairways_hit', 'fairway_holes', 'greens_in_regulation', 'hcp_index', 'hcp_differential'];
       const validServer = serverRounds.filter(r => r.round_id && String(r.round_id).trim() && r.course_name);
       const merged = validServer.map(sr => {
         const lr = localMap[sr.round_id];
         if (!lr) return sr;
         const result = { ...sr };
         Object.keys(lr).forEach(k => {
+          if (TERMINAL_FIELDS.includes(k)) {
+            // Para campos terminales: si servidor tiene un valor válido, gana el servidor
+            if (sr[k] !== undefined && sr[k] !== null && sr[k] !== '') return;
+          }
           if (lr[k] !== undefined && lr[k] !== null && lr[k] !== '') result[k] = lr[k];
         });
         return result;
