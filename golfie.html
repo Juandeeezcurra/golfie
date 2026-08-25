@@ -627,6 +627,8 @@
     <div class="logo">Golfie</div>
     <div class="logo-sub">Tu juego, en datos</div>
     <div id="sync-status" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px;"></div>
+    <div id="user-code" onclick="showUserCode()" style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;cursor:pointer;opacity:.6;"></div>
+    <div id="pending-status" onclick="flushPending()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:4px;cursor:pointer;min-height:14px;"></div>
   </div>
   <div style="padding: 16px 24px calc(90px + env(safe-area-inset-bottom)); flex: 1;">
     <div id="home-stats"></div>
@@ -866,6 +868,34 @@ function uuid() {
   return 'r-' + Date.now() + '-' + Math.random().toString(36).substr(2,6);
 }
 
+// ==================== IDENTIDAD ====================
+// Todo lo que se manda al Sheet va firmado con este código, y el sync sólo
+// trae de vuelta lo que lo tenga. Sin esto, la planilla es compartida y cada
+// dispositivo se baja las rondas de todos los demás.
+function newUserCode() {
+  let s = '';
+  while (s.length < 10) s += Math.random().toString(36).slice(2);
+  return 'u-' + s.slice(0, 10);
+}
+
+function getUserId() {
+  let id = localStorage.getItem('golfie_user_id');
+  if (!id) {
+    id = newUserCode();
+    localStorage.setItem('golfie_user_id', id);
+  }
+  return id;
+}
+
+// Vincula este dispositivo a un código existente (para ver las mismas rondas
+// en el celular y en la compu). Devuelve false si el código no es válido.
+function setUserId(id) {
+  id = String(id || '').trim().toLowerCase();
+  if (!/^u-[a-z0-9]{6,24}$/.test(id)) return false;
+  localStorage.setItem('golfie_user_id', id);
+  return true;
+}
+
 function formatDate(d) {
   return new Date(d).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' });
 }
@@ -1071,10 +1101,11 @@ function renderHistory() {
   container.innerHTML = rounds.map(r => roundCardHTML(r, true)).join('');
 }
 
-function showModal({ title, body, confirmText, safe, onConfirm }) {
+function showModal({ title, body, html, confirmText, safe, onConfirm }) {
   const overlay = document.getElementById('modal-overlay');
   document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').textContent = body;
+  const bodyEl = document.getElementById('modal-body');
+  if (html) bodyEl.innerHTML = html; else bodyEl.textContent = body;
   const btn = document.getElementById('modal-confirm');
   btn.textContent = confirmText || 'Confirmar';
   btn.className = 'modal-confirm' + (safe ? ' safe' : '');
@@ -1083,6 +1114,32 @@ function showModal({ title, body, confirmText, safe, onConfirm }) {
   document.getElementById('modal-cancel').onclick = close;
   overlay.onclick = e => { if (e.target === overlay) close(); };
   btn.onclick = () => { close(); onConfirm(); };
+}
+
+function renderUserCode() {
+  const el = document.getElementById('user-code');
+  if (el) el.textContent = 'CÓDIGO ' + getUserId();
+}
+
+function showUserCode() {
+  const uid = getUserId();
+  showModal({
+    title: 'Tu código',
+    html: '<div style="margin-bottom:12px;">Tus rondas se guardan bajo este código. Sólo vos las ves, y no te aparecen las de nadie más.</div>'
+      + '<div style="font-family:monospace;font-size:17px;letter-spacing:1px;padding:10px;background:rgba(255,255,255,.06);border-radius:8px;text-align:center;margin-bottom:16px;">' + uid + '</div>'
+      + '<div style="margin-bottom:8px;">Para ver estas mismas rondas en otro dispositivo, escribí ahí este código:</div>'
+      + '<input id="link-code-input" placeholder="u-xxxxxxxxxx" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:inherit;font-family:monospace;font-size:15px;">',
+    confirmText: 'VINCULAR',
+    safe: true,
+    onConfirm: () => {
+      const input = document.getElementById('link-code-input');
+      const val = input ? input.value : '';
+      if (!val.trim()) return;              // sólo vino a mirar el código
+      if (!setUserId(val)) { showToast('Código inválido'); return; }
+      showToast('Vinculado, recargando...');
+      setTimeout(() => location.reload(), 800);
+    }
+  });
 }
 
 function deleteRound(round_id) {
@@ -1095,6 +1152,8 @@ function deleteRound(round_id) {
       saveToLS('rounds', rounds);
       localStorage.removeItem('golfie_holes_'+round_id);
       localStorage.removeItem('golfie_clubs_'+round_id);
+      // Sin esto el borrado era sólo local y el próximo sync la traía de vuelta.
+      postToSheets('deleteRound', { round_id });
       renderHistory();
       renderHome();
     }
@@ -1145,6 +1204,7 @@ function startRound() {
 
   const roundData = {
     round_id: uuid(),
+    user_id: getUserId(),
     date: new Date().toISOString(),
     course_name: course,
     tees: document.getElementById('tees-input').value,
@@ -1479,42 +1539,202 @@ function viewRound(round_id) {
 }
 
 // ==================== SHEETS SYNC ====================
+// El POST va como text/plain a propósito: así es una "simple request" y no
+// dispara preflight (Apps Script no responde OPTIONS). Pero es CORS real, no
+// no-cors: necesitamos LEER la respuesta para saber si de verdad se guardó.
+// Con no-cors toda respuesta parecía exitosa —incluso un 500 o un redirect a
+// login— y la cola se vaciaba borrando escrituras que nunca llegaron al Sheet.
+function newQueueId() {
+  return 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+}
+
+function queueGet() {
+  const q = loadFromLS('pending_sync') || [];
+  let changed = false;
+  q.forEach(it => { if (!it.id) { it.id = newQueueId(); changed = true; } });
+  if (changed) saveToLS('pending_sync', q);
+  return q;
+}
+
+// Identifica la escritura para poder deduplicarla.
+function queueKey(endpoint, d) {
+  return [endpoint, d.round_id, d.hole_number != null ? d.hole_number : '', d.club || ''].join('|');
+}
+
+// Saca de la cola SÓLO lo confirmado, releyendo lo que haya ahora. Antes se
+// pisaba la cola entera con un array viejo, y se perdía todo lo encolado
+// mientras el flush estaba en vuelo (guardar el hoyo 5 durante el flush del 4).
+function queueRemove(doneIds) {
+  if (!doneIds.size) return;
+  saveToLS('pending_sync', queueGet().filter(it => !doneIds.has(it.id)));
+}
+
+function enqueue(endpoint, data) {
+  const q = queueGet();
+  q.push({ id: newQueueId(), endpoint, data: { ...data, user_id: getUserId() }, ts: Date.now() });
+  saveToLS('pending_sync', q);
+}
+
+function renderPending() {
+  const el = document.getElementById('pending-status');
+  if (!el) return;
+  const n = (loadFromLS('pending_sync') || []).length;
+  el.textContent = n ? '⟳ ' + n + (n === 1 ? ' cambio sin subir' : ' cambios sin subir') + ' · tocá para reintentar' : '';
+}
+
 async function postToSheets(endpoint, data) {
   if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
   try {
-    const pending = loadFromLS('pending_sync') || [];
-    pending.push({ endpoint, data, ts: Date.now() });
-    saveToLS('pending_sync', pending);
+    enqueue(endpoint, data);
+    renderPending();
     await flushPending();
   } catch(e) { console.warn('Sync error:', e); }
 }
 
-async function flushPending() {
-  const pending = loadFromLS('pending_sync') || [];
-  if (!pending.length) return;
-  const failed = [];
-  for (const item of pending) {
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: item.endpoint, ...item.data })
-      });
-    } catch { failed.push(item); }
+async function sendOne(item) {
+  const body = JSON.stringify({ action: item.endpoint, ...item.data });
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const out = await res.json();
+    if (!out || out.ok !== true) throw new Error((out && out.error) || 'respuesta inesperada');
+    return true;
+  } catch (e) {
+    if (!navigator.onLine) throw e;
+    // El navegador puede impedirnos leer la respuesta. Mandamos a ciegas y lo
+    // dejamos en la cola: las escrituras son idempotentes, así que reenviar no
+    // duplica nada, y reconcile() confirma después si efectivamente llegó.
+    try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body }); } catch {}
+    throw new Error('sin confirmación: ' + e.message);
   }
-  saveToLS('pending_sync', failed);
+}
+
+let flushing = false;
+async function flushPending() {
+  if (flushing) return;   // un solo flush a la vez: dos en paralelo se pisaban la cola
+  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+  flushing = true;
+  try {
+    let guard = 0;
+    while (queueGet().length && guard++ < 50) {
+      const done = new Set();
+      let stalled = false;
+      for (const item of queueGet()) {
+        try { await sendOne(item); done.add(item.id); }
+        catch (e) {
+          console.warn('Queda pendiente:', item.endpoint, e.message);
+          stalled = true;
+          break;          // preservamos el orden: si uno no entra, el resto espera
+        }
+      }
+      queueRemove(done);
+      if (stalled) break;
+    }
+  } finally {
+    flushing = false;
+    renderPending();
+  }
+}
+
+// ==================== RECONCILIACIÓN ====================
+// Red de seguridad. Compara lo que hay en el celular contra lo que hay en el
+// Sheet y reencola lo que falte. Es lo que recupera una ronda perdida porque
+// se cortó la señal en la cancha o porque la cola se vació de más.
+function reconcile(srvRounds, srvHoles, srvCF) {
+  const uid = getUserId();
+  const onServer = new Set(srvRounds.map(r => String(r.round_id)));
+  const yaEnCola = new Set(queueGet().map(it => queueKey(it.endpoint, it.data || {})));
+  let faltan = 0;
+
+  const add = (endpoint, data) => {
+    const k = queueKey(endpoint, data);
+    if (yaEnCola.has(k)) return;      // ya está esperando, no la encolamos dos veces
+    yaEnCola.add(k);
+    enqueue(endpoint, data);
+    faltan++;
+  };
+
+  loadRounds().forEach(r => {
+    if (!r.round_id) return;
+    if (r.user_id && r.user_id !== uid) return;   // no es mía, no la subo
+    const rid = String(r.round_id);
+
+    if (!onServer.has(rid)) {
+      add('addRound', r);
+      if (r.total_score !== null && r.total_score !== undefined && r.total_score !== '') {
+        add('updateRound', r);
+      }
+    }
+
+    const holesLocal = loadFromLS('holes_' + rid) || {};
+    const holesSrv = srvHoles[rid] || {};
+    Object.values(holesLocal).forEach(h => {
+      if (!h || h.hole_number === null || h.hole_number === undefined) return;
+      if (holesSrv[h.hole_number] !== undefined) return;
+      add('addHole', { ...h, round_id: rid });
+    });
+
+    const clubsLocal = loadFromLS('clubs_' + rid) || {};
+    const clubsSrv = srvCF[rid] || {};
+    Object.entries(clubsLocal).forEach(([club, fb]) => {
+      if (!fb || (!fb.rating && !(fb.tags && fb.tags.length))) return;
+      if (clubsSrv[club] !== undefined) return;
+      add('addClubFeedback', { round_id: rid, club, rating: fb.rating || '', tags: (fb.tags || []).join(',') });
+    });
+  });
+
+  return faltan;
+}
+
+// Lo que el servidor ya tiene confirmado sale de la cola, así no se reenvía
+// para siempre cuando el navegador no nos deja leer la respuesta del POST.
+function pruneQueue(srvRounds, srvHoles, srvCF) {
+  const byId = {};
+  srvRounds.forEach(r => byId[String(r.round_id)] = r);
+  const drop = new Set();
+
+  queueGet().forEach(it => {
+    const d = it.data || {};
+    const rid = String(d.round_id);
+    const sr = byId[rid];
+    if (it.endpoint === 'addRound' && sr) drop.add(it.id);
+    if (it.endpoint === 'updateRound' && sr &&
+        sr.total_score !== '' && sr.total_score !== null && sr.total_score !== undefined &&
+        Number(sr.total_score) === Number(d.total_score)) drop.add(it.id);
+    if (it.endpoint === 'addHole' && (srvHoles[rid] || {})[d.hole_number] !== undefined) drop.add(it.id);
+    if (it.endpoint === 'addClubFeedback' && (srvCF[rid] || {})[d.club] !== undefined) drop.add(it.id);
+  });
+
+  queueRemove(drop);
+  return drop.size;
+}
+
+// El backend viejo sólo hacía append: reconciliar contra él duplicaría filas.
+// Por eso sólo reconciliamos si responde v>=2 (o sea, ya lo redesplegaste).
+async function backendVersion() {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=ping');
+    const out = await res.json();
+    return (out && out.v) || 0;
+  } catch { return 0; }
 }
 
 // ==================== SYNC FROM SERVER ====================
 async function syncFromServer() {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
   const statusEl = document.getElementById('sync-status');
+  const uid = getUserId();
+  const q = '&user_id=' + encodeURIComponent(uid);
+  let srvRounds = [], srvHoles = {}, srvCF = {};
   try {
     if (statusEl) statusEl.textContent = 'Actualizando...';
 
     // Rounds
-    const rRes = await fetch(APPS_SCRIPT_URL + '?action=getRounds');
+    const rRes = await fetch(APPS_SCRIPT_URL + '?action=getRounds' + q);
     const serverRounds = await rRes.json();
     if (Array.isArray(serverRounds) && serverRounds.length) {
       const localRounds = loadRounds();
@@ -1524,7 +1744,12 @@ async function syncFromServer() {
       // Merge por campo: base = servidor, campos locales no-vacíos ganan
       // Excepción: campos de estado terminal — si el servidor dice true/completado, eso gana siempre
       const TERMINAL_FIELDS = ['completed', 'total_score', 'par_total', 'holes_played', 'total_putts', 'fairways_hit', 'fairway_holes', 'greens_in_regulation', 'hcp_index', 'hcp_differential'];
-      const validServer = serverRounds.filter(r => r.round_id && String(r.round_id).trim() && r.course_name);
+      // Doble filtro: el servidor ya filtra por user_id, pero si está sin
+      // redesplegar y devuelve todo, acá no entra nada que no sea tuyo.
+      const validServer = serverRounds.filter(r =>
+        r.round_id && String(r.round_id).trim() && r.course_name &&
+        String(r.user_id || '').trim() === uid);
+      srvRounds = validServer;
       const merged = validServer.map(sr => {
         const lr = localMap[sr.round_id];
         if (!lr) return sr;
@@ -1549,7 +1774,7 @@ async function syncFromServer() {
     }
 
     // Holes — store per round as { hole_number: holeData }
-    const hRes = await fetch(APPS_SCRIPT_URL + '?action=getHoles');
+    const hRes = await fetch(APPS_SCRIPT_URL + '?action=getHoles' + q);
     const serverHoles = await hRes.json();
     if (Array.isArray(serverHoles)) {
       const grouped = {};
@@ -1557,6 +1782,7 @@ async function syncFromServer() {
         if (!grouped[h.round_id]) grouped[h.round_id] = {};
         grouped[h.round_id][h.hole_number] = h;
       });
+      srvHoles = grouped;
       Object.entries(grouped).forEach(([rid, holes]) => saveToLS('holes_'+rid, holes));
 
       // Recalculate score for rounds that have holes but missing total_score
@@ -1579,7 +1805,7 @@ async function syncFromServer() {
     }
 
     // Club feedback — store per round as { club: { rating, tags[] } }
-    const cRes = await fetch(APPS_SCRIPT_URL + '?action=getClubFeedback');
+    const cRes = await fetch(APPS_SCRIPT_URL + '?action=getClubFeedback' + q);
     const serverCF = await cRes.json();
     if (Array.isArray(serverCF)) {
       const grouped = {};
@@ -1590,8 +1816,16 @@ async function syncFromServer() {
           tags: cf.tags ? String(cf.tags).split(',').filter(Boolean) : []
         };
       });
+      srvCF = grouped;
       Object.entries(grouped).forEach(([rid, cf]) => saveToLS('clubs_'+rid, cf));
     }
+
+    if (await backendVersion() >= 2) {
+      pruneQueue(srvRounds, srvHoles, srvCF);
+      const faltan = reconcile(srvRounds, srvHoles, srvCF);
+      if (faltan) showToast('Subiendo ' + faltan + ' registro(s) que faltaban en el Sheet', 3000);
+    }
+    await flushPending();
 
     renderHome();
     if (statusEl) statusEl.textContent = '';
@@ -1604,10 +1838,18 @@ async function syncFromServer() {
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
   loadCourses();
+  renderUserCode();
+  renderPending();
   renderHome();
   initClubFeedback();
   flushPending();
   syncFromServer();
+});
+
+// Volver a intentar en cuanto haya señal otra vez, o al volver a la app.
+window.addEventListener('online', () => flushPending());
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') flushPending();
 });
 </script>
 </body>
