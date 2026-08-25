@@ -630,6 +630,7 @@
     <div id="user-code" onclick="showUserCode()" style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;cursor:pointer;opacity:.6;"></div>
     <div id="pending-status" onclick="flushPending()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:4px;cursor:pointer;min-height:14px;"></div>
     <div id="cleanup-status" onclick="showCleanup()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:2px;cursor:pointer;min-height:14px;"></div>
+    <div id="hold-status" onclick="showHold()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:2px;cursor:pointer;min-height:14px;"></div>
     <div onclick="showRepair()" style="font-size:11px;color:var(--muted);margin-top:2px;cursor:pointer;opacity:.5;">⚙ REPARAR DATOS</div>
   </div>
   <div style="padding: 16px 24px calc(90px + env(safe-area-inset-bottom)); flex: 1;">
@@ -1840,6 +1841,55 @@ function applyCleanup() {
   syncFromServer();
 }
 
+// Por encima de esto, reconcile no sube nada solo: te pregunta primero.
+// Un bug que confunda de quién son los datos puede querer subir cientos de
+// registros de golpe, y eso tiene que ser visible antes de tocar el Sheet,
+// no después. Una ronda entera son ~20 registros, así que el límite deja
+// pasar la recuperación normal de una o dos rondas.
+const RECONCILE_LIMIT = 40;
+
+function renderHold() {
+  const el = document.getElementById('hold-status');
+  if (!el) return;
+  const n = (loadFromLS('reconcile_hold') || []).length;
+  el.textContent = n ? '⚠ ' + n + ' registros esperando para subir · tocá para revisar' : '';
+}
+
+function showHold() {
+  const hold = loadFromLS('reconcile_hold') || [];
+  if (!hold.length) { showToast('No hay nada esperando'); return; }
+
+  const porCancha = {};
+  const rounds = {};
+  loadRounds().forEach(r => rounds[String(r.round_id)] = r);
+  hold.forEach(h => {
+    const r = rounds[String((h.data || {}).round_id)];
+    const c = (r && r.course_name) || '—';
+    porCancha[c] = (porCancha[c] || 0) + 1;
+  });
+
+  const filas = Object.entries(porCancha).sort((a, b) => b[1] - a[1])
+    .map(([c, n]) => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);"><span>' + c + '</span><span style="opacity:.5;">' + n + '</span></div>').join('');
+
+  showModal({
+    title: 'Revisar antes de subir',
+    html: '<div style="margin-bottom:12px;">Hay <b>' + hold.length + ' registros</b> en el celular que no están en el Sheet. Es normal al recuperar rondas viejas, pero si ves canchas que no jugaste, no las subas: borralas desde <b>Reparar datos</b>.</div>'
+      + '<div style="max-height:34vh;overflow:auto;margin-bottom:12px;">' + filas + '</div>',
+    confirmText: 'SUBIR TODO',
+    safe: true,
+    onConfirm: applyHold
+  });
+}
+
+function applyHold() {
+  const hold = loadFromLS('reconcile_hold') || [];
+  hold.forEach(h => enqueue(h.endpoint, h.data));
+  saveToLS('reconcile_hold', []);
+  renderHold(); renderPending();
+  showToast('Subiendo ' + hold.length + ' registros', 3000);
+  flushPending();
+}
+
 // ==================== RECONCILIACIÓN ====================
 // Red de seguridad. Compara lo que hay en el celular contra lo que hay en el
 // Sheet y reencola lo que falte. Es lo que recupera una ronda perdida porque
@@ -1848,14 +1898,14 @@ function reconcile(srvRounds, srvHoles, srvCF) {
   const uid = getUserId();
   const onServer = new Set(srvRounds.map(r => String(r.round_id)));
   const yaEnCola = new Set(queueGet().map(it => queueKey(it.endpoint, it.data || {})));
-  let faltan = 0;
+  const propuesta = [];
 
+  // Propone, no encola. Quien llama decide si es una cantidad razonable.
   const add = (endpoint, data) => {
     const k = queueKey(endpoint, data);
-    if (yaEnCola.has(k)) return;      // ya está esperando, no la encolamos dos veces
+    if (yaEnCola.has(k)) return;      // ya está esperando, no la proponemos dos veces
     yaEnCola.add(k);
-    enqueue(endpoint, data);
-    faltan++;
+    propuesta.push({ endpoint, data });
   };
 
   loadRounds().forEach(r => {
@@ -1890,7 +1940,7 @@ function reconcile(srvRounds, srvHoles, srvCF) {
     });
   });
 
-  return faltan;
+  return propuesta;
 }
 
 // Lo que el servidor ya tiene confirmado sale de la cola, así no se reenvía
@@ -2025,11 +2075,20 @@ async function syncFromServer() {
 
     if (await backendVersion() >= 2) {
       pruneQueue(srvRounds, srvHoles, srvCF);
-      const faltan = reconcile(srvRounds, srvHoles, srvCF);
-      if (faltan) showToast('Subiendo ' + faltan + ' registro(s) que faltaban en el Sheet', 3000);
+      const propuesta = reconcile(srvRounds, srvHoles, srvCF);
+      if (propuesta.length > RECONCILE_LIMIT) {
+        // Demasiado para hacerlo en silencio. Queda esperando tu visto bueno.
+        saveToLS('reconcile_hold', propuesta);
+        renderHold();
+      } else if (propuesta.length) {
+        saveToLS('reconcile_hold', []);
+        propuesta.forEach(h => enqueue(h.endpoint, h.data));
+        showToast('Subiendo ' + propuesta.length + ' registro(s) que faltaban en el Sheet', 3000);
+      }
     }
     await flushPending();
     renderCleanup();
+    renderHold();
 
     renderHome();
     if (statusEl) statusEl.textContent = '';
@@ -2050,6 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
   purgeOrphanQueue();      // antes de cualquier envío: frena lo que reconcile encoló de más
   renderPending();
   renderCleanup();
+  renderHold();
   renderHome();
   initClubFeedback();
   flushPending();

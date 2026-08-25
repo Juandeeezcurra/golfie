@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Sintaxis del JS de golfie.html
+        run: |
+          node -e "
+            const fs=require('fs');
+            const html=fs.readFileSync('golfie.html','utf8');
+            const blocks=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
+            fs.writeFileSync('/tmp/app.js', blocks.join('\n;\n'));
+          "
+          node --check /tmp/app.js
+      - name: Sintaxis del backend
+        run: cp appsscript.gs /tmp/backend.js && node --check /tmp/backend.js
+      - name: Suite de sincronización
+        run: node tests/run.js

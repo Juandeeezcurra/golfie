@@ -85,3 +85,14 @@ golfie/
 - [ ] Cálculo automático de Handicap Index
 - [ ] Análisis por tipo de hoyo (par 3/4/5)
 - [ ] Export a CSV
+
+## Tests
+
+```
+node tests/run.js
+```
+
+Corren el cliente y el backend reales contra un Google Sheets simulado en
+memoria, y cubren las regresiones de sincronización: escrituras perdidas,
+datos de otro usuario, adopción de rondas sin dueño, subidas masivas.
+Detalle e invariantes en [tests/README.md](tests/README.md).
