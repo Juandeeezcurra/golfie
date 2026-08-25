@@ -630,6 +630,7 @@
     <div id="user-code" onclick="showUserCode()" style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;cursor:pointer;opacity:.6;"></div>
     <div id="pending-status" onclick="flushPending()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:4px;cursor:pointer;min-height:14px;"></div>
     <div id="cleanup-status" onclick="showCleanup()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:2px;cursor:pointer;min-height:14px;"></div>
+    <div onclick="showRepair()" style="font-size:11px;color:var(--muted);margin-top:2px;cursor:pointer;opacity:.5;">⚙ REPARAR DATOS</div>
   </div>
   <div style="padding: 16px 24px calc(90px + env(safe-area-inset-bottom)); flex: 1;">
     <div id="home-stats"></div>
@@ -1614,6 +1615,7 @@ async function sendOne(item) {
   }
 }
 
+let lastSyncError = '';
 let flushing = false;
 async function flushPending() {
   if (flushing) return;   // un solo flush a la vez: dos en paralelo se pisaban la cola
@@ -1628,6 +1630,7 @@ async function flushPending() {
         try { await sendOne(item); done.add(item.id); }
         catch (e) {
           console.warn('Queda pendiente:', item.endpoint, e.message);
+          lastSyncError = item.endpoint + ': ' + e.message;
           stalled = true;
           break;          // preservamos el orden: si uno no entra, el resto espera
         }
@@ -1662,6 +1665,111 @@ function purgeOrphanQueue() {
   const antes = queueGet().length;
   saveToLS('pending_sync', queueGet().filter(it => !orphans.has(String((it.data || {}).round_id))));
   return antes - queueGet().length;
+}
+
+// ==================== REPARAR DATOS ====================
+// Prueba la conexión de verdad, contra el backend real, y devuelve qué pasa.
+// El POST de prueba usa deleteRound con un id inexistente: no escribe nada.
+async function diagnose() {
+  const out = [];
+  try {
+    const t0 = Date.now();
+    const res = await fetch(APPS_SCRIPT_URL + '?action=ping');
+    const j = await res.json();
+    out.push('Lectura: OK · backend v' + ((j && j.v) || '?') + ' · ' + (Date.now() - t0) + 'ms');
+  } catch (e) { out.push('Lectura: FALLA · ' + e.message); }
+
+  try {
+    const t0 = Date.now();
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'deleteRound', round_id: '__diagnostico__', user_id: getUserId() })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    out.push('Escritura: ' + (j && j.ok ? 'OK, confirmada' : 'responde pero sin ok') + ' · ' + (Date.now() - t0) + 'ms');
+  } catch (e) { out.push('Escritura: SIN CONFIRMAR · ' + e.message); }
+
+  return out;
+}
+
+// Canchas presentes en el celular, con cuántas rondas y cuántas sin dueño.
+function coursesSummary() {
+  const uid = getUserId();
+  const m = {};
+  loadRounds().forEach(r => {
+    const c = r.course_name || '—';
+    m[c] = m[c] || { total: 0, orphan: 0 };
+    m[c].total++;
+    if (String(r.user_id || '').trim() !== uid) m[c].orphan++;
+  });
+  return Object.entries(m).sort((a, b) => b[1].total - a[1].total);
+}
+
+function clearQueue() {
+  saveToLS('pending_sync', []);
+  renderPending();
+  // Seguro: reconcile vuelve a encolar lo que sea tuyo y falte en el Sheet.
+  showToast('Cola vaciada', 2500);
+}
+
+function showRepair() {
+  const cola = queueGet();
+  const porTipo = {};
+  cola.forEach(it => porTipo[it.endpoint] = (porTipo[it.endpoint] || 0) + 1);
+  const colaTxt = cola.length
+    ? Object.entries(porTipo).map(([k, v]) => k + ' ×' + v).join(' · ')
+    : 'vacía';
+
+  const filas = coursesSummary().map(([cancha, n]) =>
+    '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
+    + '<input type="checkbox" class="repair-course" data-course="' + cancha.replace(/"/g, '&quot;') + '" style="width:18px;height:18px;flex:none;">'
+    + '<span style="flex:1;">' + cancha + '</span>'
+    + '<span style="opacity:.5;font-size:12px;">' + n.total + (n.orphan ? ' · ' + n.orphan + ' sin dueño' : '') + '</span></label>').join('');
+
+  const box = 'background:rgba(255,255,255,.05);border-radius:8px;padding:10px;margin-bottom:14px;font-family:monospace;font-size:12px;line-height:1.6;';
+
+  showModal({
+    title: 'Reparar datos',
+    html: '<div style="' + box + '" id="diag-net">Probando conexión...</div>'
+      + '<div style="' + box + '">Cola: ' + colaTxt
+      + (lastSyncError ? '<br>Último error: ' + lastSyncError : '')
+      + '<br><span onclick="clearQueue()" style="color:#fbbf24;cursor:pointer;text-decoration:underline;">vaciar la cola</span></div>'
+      + '<div style="margin-bottom:10px;"><b>Marcá las canchas a borrar.</b> Se van del celular y del Sheet.</div>'
+      + '<div style="max-height:32vh;overflow:auto;">' + filas + '</div>',
+    confirmText: 'BORRAR MARCADAS',
+    onConfirm: applyRepair
+  });
+
+  diagnose().then(lineas => {
+    const el = document.getElementById('diag-net');
+    if (el) el.innerHTML = lineas.join('<br>');
+  });
+}
+
+function applyRepair() {
+  const borrar = new Set();
+  document.querySelectorAll('.repair-course').forEach(cb => {
+    if (cb.checked) borrar.add(cb.dataset.course);
+  });
+  if (!borrar.size) { showToast('No marcaste ninguna cancha'); return; }
+
+  const quedan = [];
+  let n = 0;
+  loadRounds().forEach(r => {
+    if (!borrar.has(r.course_name || '—')) { quedan.push(r); return; }
+    purgeQueueForRound(r.round_id);
+    localStorage.removeItem('golfie_holes_' + r.round_id);
+    localStorage.removeItem('golfie_clubs_' + r.round_id);
+    postToSheets('deleteRound', { round_id: r.round_id });
+    n++;
+  });
+
+  saveToLS('rounds', quedan);
+  saveToLS('courses', (loadFromLS('courses') || []).filter(c => !borrar.has(c.name)));
+  renderHome(); renderPending(); renderCleanup();
+  showToast(n + (n === 1 ? ' ronda borrada' : ' rondas borradas'), 3000);
 }
 
 function renderCleanup() {
@@ -1927,6 +2035,10 @@ async function syncFromServer() {
     if (statusEl) statusEl.textContent = '';
   } catch(e) {
     console.warn('Sync from server failed:', e);
+    lastSyncError = 'sync: ' + e.message;
+  } finally {
+    // Pase lo que pase el cartel se limpia: antes podía quedar en
+    // "Actualizando..." para siempre si algo fallaba a mitad de camino.
     if (statusEl) statusEl.textContent = '';
   }
 }
