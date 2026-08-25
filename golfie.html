@@ -629,6 +629,7 @@
     <div id="sync-status" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px;"></div>
     <div id="user-code" onclick="showUserCode()" style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;cursor:pointer;opacity:.6;"></div>
     <div id="pending-status" onclick="flushPending()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:4px;cursor:pointer;min-height:14px;"></div>
+    <div id="cleanup-status" onclick="showCleanup()" style="font-size:11px;color:var(--amber,#fbbf24);margin-top:2px;cursor:pointer;min-height:14px;"></div>
   </div>
   <div style="padding: 16px 24px calc(90px + env(safe-area-inset-bottom)); flex: 1;">
     <div id="home-stats"></div>
@@ -1640,6 +1641,97 @@ async function flushPending() {
   }
 }
 
+// ==================== RONDAS SIN DUEÑO ====================
+// Rondas que quedaron en el celular sin user_id: pueden ser tuyas (previas al
+// código) o ajenas (entraron por el sync viejo, que traía la planilla entera).
+// No hay forma de distinguirlas automáticamente, así que decidís vos.
+function orphanRounds() {
+  const uid = getUserId();
+  return loadRounds().filter(r => r.round_id && String(r.user_id || '').trim() !== uid);
+}
+
+function purgeQueueForRound(rid) {
+  saveToLS('pending_sync', queueGet().filter(it => String((it.data || {}).round_id) !== String(rid)));
+}
+
+// Al arrancar sacamos de la cola todo lo que pertenezca a rondas sin dueño:
+// nunca debieron encolarse.
+function purgeOrphanQueue() {
+  const orphans = new Set(orphanRounds().map(r => String(r.round_id)));
+  if (!orphans.size) return 0;
+  const antes = queueGet().length;
+  saveToLS('pending_sync', queueGet().filter(it => !orphans.has(String((it.data || {}).round_id))));
+  return antes - queueGet().length;
+}
+
+function renderCleanup() {
+  const el = document.getElementById('cleanup-status');
+  if (!el) return;
+  const n = orphanRounds().length;
+  el.textContent = n ? '⚠ ' + n + (n === 1 ? ' ronda sin identificar' : ' rondas sin identificar') + ' · tocá para revisar' : '';
+}
+
+function showCleanup() {
+  const orphans = orphanRounds();
+  if (!orphans.length) { showToast('No hay rondas sin identificar'); return; }
+
+  const porCancha = {};
+  orphans.forEach(r => {
+    const c = r.course_name || '—';
+    (porCancha[c] = porCancha[c] || []).push(r);
+  });
+
+  const filas = Object.entries(porCancha)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([cancha, rs]) =>
+      '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
+      + '<input type="checkbox" class="cleanup-course" data-course="' + cancha.replace(/"/g, '&quot;') + '" style="width:18px;height:18px;flex:none;">'
+      + '<span style="flex:1;">' + cancha + '</span>'
+      + '<span style="opacity:.5;font-size:12px;">' + rs.length + '</span></label>').join('');
+
+  showModal({
+    title: 'Rondas sin identificar',
+    html: '<div style="margin-bottom:12px;">Quedaron en el celular sin dueño: o son tuyas de antes del código, o se colaron de otra persona por el sync viejo.</div>'
+      + '<div style="margin-bottom:12px;"><b>Marcá las canchas donde jugaste vos.</b> Las que dejes sin marcar se borran del celular y del Sheet.</div>'
+      + '<div style="max-height:38vh;overflow:auto;">' + filas + '</div>',
+    confirmText: 'APLICAR',
+    onConfirm: applyCleanup
+  });
+}
+
+function applyCleanup() {
+  const mias = new Set();
+  document.querySelectorAll('.cleanup-course').forEach(cb => {
+    if (cb.checked) mias.add(cb.dataset.course);
+  });
+
+  const uid = getUserId();
+  const quedan = [];
+  let adoptadas = 0, borradas = 0;
+
+  loadRounds().forEach(r => {
+    if (String(r.user_id || '').trim() === uid) { quedan.push(r); return; }
+
+    if (mias.has(r.course_name || '—')) {
+      r.user_id = uid;
+      quedan.push(r);
+      adoptadas++;
+      return;
+    }
+
+    purgeQueueForRound(r.round_id);
+    localStorage.removeItem('golfie_holes_' + r.round_id);
+    localStorage.removeItem('golfie_clubs_' + r.round_id);
+    postToSheets('deleteRound', { round_id: r.round_id });   // por si ya se había subido
+    borradas++;
+  });
+
+  saveToLS('rounds', quedan);
+  renderHome(); renderCleanup(); renderPending();
+  showToast(adoptadas + ' adoptadas · ' + borradas + ' borradas', 3000);
+  syncFromServer();
+}
+
 // ==================== RECONCILIACIÓN ====================
 // Red de seguridad. Compara lo que hay en el celular contra lo que hay en el
 // Sheet y reencola lo que falte. Es lo que recupera una ronda perdida porque
@@ -1660,7 +1752,10 @@ function reconcile(srvRounds, srvHoles, srvCF) {
 
   loadRounds().forEach(r => {
     if (!r.round_id) return;
-    if (r.user_id && r.user_id !== uid) return;   // no es mía, no la subo
+    // Propiedad exacta. Una ronda sin user_id NO es mía: las que se colaron
+    // de otra gente también están sin dueño en el celular, y adoptarlas las
+    // subía al Sheet firmadas con mi código. Se resuelven a mano en showCleanup().
+    if (String(r.user_id || '').trim() !== uid) return;
     const rid = String(r.round_id);
 
     if (!onServer.has(rid)) {
@@ -1826,6 +1921,7 @@ async function syncFromServer() {
       if (faltan) showToast('Subiendo ' + faltan + ' registro(s) que faltaban en el Sheet', 3000);
     }
     await flushPending();
+    renderCleanup();
 
     renderHome();
     if (statusEl) statusEl.textContent = '';
@@ -1839,7 +1935,9 @@ async function syncFromServer() {
 document.addEventListener('DOMContentLoaded', () => {
   loadCourses();
   renderUserCode();
+  purgeOrphanQueue();      // antes de cualquier envío: frena lo que reconcile encoló de más
   renderPending();
+  renderCleanup();
   renderHome();
   initClubFeedback();
   flushPending();
