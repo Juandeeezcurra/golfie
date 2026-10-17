@@ -103,7 +103,7 @@ Para pasar el contexto a Claude, leer también [CLAUDE_HANDOFF.md](CLAUDE_HANDOF
 - La tarjeta por hoyo ahora snapshottea stroke index y distancia (`migrations/0004_hole_card_snapshot.sql`). El dashboard muestra la tarjeta tabular con ida/vuelta y permite descargar CSV.
 - `public/js/core/scorecard.js` arma la tarjeta; `public/js/core/formats.js` contiene reglas de Stableford, 4-2-0, Match y Scramble. La fase 4 conectó jugadores, modalidades y marcador; la última actualización completa Scramble por parejas.
 - El índice casero omite vueltas de 9 hoyos hasta implementar el cálculo WHS de combinación correctamente.
-- Esta tanda no se probó ni se desplegó. Las migraciones 0002–0004 todavía deben confirmarse/aplicarse en D1 de producción antes de depender de sus columnas.
+- Estado actualizado: suite 56/56 aprobada; migraciones 0001-0005 aplicadas en D1 de producción; Worker v3 desplegado.
 - Al guardar el hoyo 9 de una ronda de 18, aparece una pausa con el resumen de la ida; al cerrarla queda listo el hoyo 10.
 
 ## Actualización fase 4 — 2026-10-16
@@ -112,4 +112,6 @@ Se agregó la migración 0005, tablas de perfiles y participantes, `player_id` e
 
 Además, las rondas parciales con score acumulado se mantienen marcadas como “En curso” en el historial.
 
-Pendiente todavía: pruebas multi-jugador con fallos de red; inspección visual; migraciones remotas confirmadas y despliegue ordenado (Worker antes que frontend). Scramble ya está conectado localmente, pero falta validación de aceptación. No se ejecutaron pruebas ni deploy.
+Cerrado: pruebas multi-jugador offline, revisión visual, migraciones remotas y despliegue Worker/frontend.
+
+Pendiente de aceptación humana: ronda Scramble real con CSV y reintento offline, revisión móvil y contraste de datos de cancha con tarjetas físicas.

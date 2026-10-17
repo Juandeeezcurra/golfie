@@ -1,75 +1,56 @@
-# Golfie v2 — estado para retomar con Claude
+# Golfie v2 — handoff para Claude
 
-Actualizado: 2026-10-16. Repo: `C:\Users\juand\OneDrive\Desktop\Golfie.ia`.
-Lee este archivo y `pending.md` antes de cambiar código. La copia de trabajo tiene muchos cambios sin commit; no restaures archivos ni limpies el árbol.
+Actualizado: 2026-10-16 (America/Argentina/Buenos_Aires)  
+Repo: `C:\Users\juand\OneDrive\Desktop\Golfie.ia`  
+Producción: https://golfie.shymie.workers.dev
 
-## Pedido y decisiones vigentes
+## Objetivo y decisiones
 
-El objetivo es terminar Golfie v2 sobre Cloudflare Workers + D1, conservando el uso offline y los datos históricos. El usuario pidió avanzar de una sola vez todo lo que sea razonable, evitar bloqueos grandes y dejarle este contexto a Claude. Esta tanda no pidió publicación ni pruebas; por eso no se desplegó ni se corrió la suite.
+Terminar Golfie sobre Cloudflare Workers + D1, conservando modo offline y datos históricos. El usuario pidió avanzar autónomamente, resolver los pendientes y compartir este handoff con Claude. Ya autorizó tests, migraciones remotas, deploy y push.
 
-Decisiones cerradas en el plan de Claude (`C:\Users\juand\.claude\plans\glimmering-foraging-whale.md`):
+- Laguneada queda fuera de alcance.
+- Formatos: Medal, Stableford, Match Play, Scramble y 4-2-0; cálculos netos por stroke index.
+- Amigos usan un perfil liviano (nombre + Handicap Index), sin login.
+- Nunca inventar datos de tarjeta. Mantener advertencias para valores de baja confianza.
+- No correr importación CSV sin export fresco: puede reemplazar datos de D1.
 
-- Laguneada fuera del alcance.
-- Formatos deseados: Match Play, Scramble, 4-2-0 y Stableford individual.
-- Todo se calcula neto, distribuyendo golpes por stroke index.
-- 4-2-0: 4/2/0; empatados comparten el promedio de los puestos (3/3 al empatar primero; 1/1 al empatar segundo; 2 cada uno con empate triple).
-- Jugadores amigos con perfil liviano (nombre + Handicap Index), sin login propio.
-- Canchas precargadas como JSON; campos de tarjeta dudosos se dejan advertidos, nunca se inventan.
+## Arquitectura
 
-## Cómo está armada la app
+- `public/index.html`: pantallas; módulos ES en `public/js/`, sin build step.
+- `public/js/main.js`: arranque, handlers globales, service worker y sync.
+- `public/js/store.js` y `sync.js`: persistencia local, cola offline y reconciliación.
+- `public/js/core/`: reglas puras; `public/js/ui/`: pantallas.
+- `public/data/courses.json`: catálogo de canchas y fuentes.
+- `src/index.js`, `src/db.js`, `src/schema.js`: API Worker y D1.
+- Cambios a una D1 existente requieren una migración incremental en `migrations/`.
+- `legacy/`: respaldo de Apps Script/Sheets.
 
-- `public/index.html`: markup; el comportamiento está en módulos ES sin build step.
-- `public/js/main.js`: arranque, handlers globales para `onclick`, service worker y sync.
-- `public/js/store.js` / `sync.js`: persistencia local y cola offline. Tocar sincronización requiere revisar `queueKey`, `reconcile`, `pruneQueue` y `tests/sync/` juntos.
-- `public/js/core/`: reglas puras; `ui/`: pantallas. `public/data/courses.json`: tarjetas de referencia y sus fuentes.
-- `src/schema.js` genera el esquema base; cambios a una D1 existente requieren una migración incremental en `migrations/`.
-- `src/db.js` y `src/index.js`: repositorio D1 y API Worker.
-- `public/sw.js` elevó la caché a v2.5 e incluye los módulos de tarjeta, formatos y posiciones.
-- `legacy/`: respaldo de Apps Script/Sheets. Las pruebas antiguas fueron reemplazadas/movidas a `tests/` sobre el código actual.
+## Funcionalidad entregada
 
-## Avances ya realizados
+- Tarjeta por hoyo con snapshot de stroke index y distancia, ida/vuelta/total y descarga CSV.
+- Pausa/resumen al terminar la ida en rondas de 18 hoyos.
+- Handicap casero, golpes por SI, Stableford y posiciones de los formatos soportados.
+- Scramble de cuatro jugadores en dos parejas: un score por equipo/hoyo, réplica a sus integrantes, allowance 35%/15%, neto cuando los cuatro tienen handicap y standings. Excluido del handicap e insights individuales.
+- Perfiles y participantes persisten por jugador; sync identifica cada tarjeta por `player_id`. Las escrituras offline quedan en cola y reconciliar de nuevo no duplica datos.
+- Rondas parciales con score se muestran como “En curso”.
+- Service worker v2.5. Una PWA que retenga assets viejos puede requerir recarga completa/cerrar y abrir de nuevo.
 
-### Base / fase 1
+## Validación y despliegue
 
-Refactor del HTML monolítico a módulos, fuentes locales, app instalable/offline, cliente sync inyectable y suite actual de Node. El score acumulado se puede ocultar con el botón del ojo. Cloudflare está desplegado en `https://golfie.shymie.workers.dev`; el último estado documentado tenía 14 rondas, 216 hoyos y 347 feedbacks.
+- `npm test`: **56/56 aprobados**; incluye cálculo/clasificación Scramble y reconciliación offline de cuatro jugadores.
+- Edge headless, viewport 1440 px: setup Scramble muestra cuatro jugadores y dos parejas; cero errores JavaScript.
+- D1 remota: migraciones `0001`–`0005` aplicadas; `npm run db:migrate` confirmó “No migrations to apply”.
+- Worker + assets desplegados en versión `20bd2437-44f3-422c-a4c5-b57bc2319a05`.
+- Endpoint público ping: HTTP 200, `v: 3`, capabilities `players`, `round_players`, `player_holes`, `formats`. Home público HTTP 200 con Scramble.
+- El frontend y el Worker se publican juntos en el mismo deploy de Wrangler.
 
-### Fase 2: canchas
+## Pendiente real
 
-`public/data/courses.json` tiene nueve entradas: Jockey Azul/Colorada, Boulogne, San Patricio, San Isidro, Pilar, Newman, Pacheco y Cañuelas. Hay selector de tees, par/distancia/SI por hoyo y advertencias de confianza. Boulogne es 9 hoyos; Pilar está modelado con la combinación Azul + Blanca disponible. Quedan pendientes contrastes con tarjetas físicas, sobre todo Cañuelas rojos, los tees/SI alternativos y la combinación de Pilar. No corregir datos de baja confianza adivinando.
+1. Aceptación manual con una ronda Scramble real: captura completa, standings, CSV y reintento tras recuperar conexión. La lógica sí tiene pruebas automatizadas; no se condujo la ronda completa dentro de un navegador.
+2. Probar en móvil y hacer rondas de aceptación individuales/equipos, incluyendo cancha de 9 hoyos.
+3. Contrastar tarjetas marcadas con baja confianza (especialmente Cañuelas, Pilar y tees alternativos). No cambiar los valores basándose en conjeturas.
+4. El índice casero no es Handicap Index oficial: no incluye PCC, Net Double Bogey completo, ajustes federados ni combinación WHS para rondas de 9 hoyos.
 
-### Fase 3: handicap
+## Estado del árbol
 
-`public/js/core/handicap.js` contiene Course Handicap, Playing Handicap, distribución por SI, neto, Stableford y cálculo de índice sobre hasta 20 diferenciales. El tracker ya anuncia golpes recibidos/devueltos cuando rating, slope y SI están disponibles. Se excluyen del índice las vueltas de 9 hoyos hasta implementar la combinación WHS de dos vueltas / score esperado. El algoritmo actual no debe presentarse como Handicap Index oficial: no maneja PCC, ajustes hole-by-hole/Net Double Bogey ni registros federados.
-
-### Cambios de esta tanda (aún sin probar)
-
-- Las rondas guardan `course_holes_count` (migración `0003`).
-- Los hoyos nuevos guardan foto de `stroke_index` y `hole_length`; agregado al esquema canónico y migración `0004_hole_card_snapshot.sql`.
-- `public/js/core/scorecard.js` arma ida/vuelta/total y neto; el dashboard muestra la tarjeta y ofrece descarga CSV.
-- Al guardar el hoyo 9 de una ronda de 18, aparece una pausa con el resumen de la ida; cerrar o continuar deja listo el hoyo 10.
-- `public/js/core/formats.js` contiene las reglas de Stableford, 4-2-0, Match y allowance Scramble; esta tanda conectó Scramble por parejas con la selección de equipos, marcador y tarjeta local.
-- El Dashboard por hoyo usa el SI/distancia snapshot; rondas viejas hacen fallback al catálogo actual.
-- `public/sw.js` elevó la caché a v2.5 e incluye los módulos de tarjeta, formatos y posiciones.
-- Las vueltas de 9 hoyos no se usan como diferencial de 18 hoyos.
-
-## Fase 4: avance local y partes pendientes
-
-La base integral ya está en el árbol local, sin publicar: migración `0005_players_and_formats.sql`; perfiles y participantes de ronda; `player_id` por hoyo; endpoints `savePlayer` / `addRoundPlayer`; lectura de perfiles; ping Worker v3 con capacidades; cola/reconcile/prune identifican jugador y comparan valores antes de borrar escrituras; importar el histórico no borra perfiles. La pantalla permite agregar amigos, elegir jugadores y jugar Medal neto, Stableford, Match de dos, 4-2-0 de tres y Scramble de cuatro en dos equipos. Scramble registra un score por equipo/hoyo, lo replica a sus dos jugadores, calcula handicap neto 35%/15% y muestra posiciones en vivo.
-
-Pendiente: revisión de una ronda multi-jugador de punta a punta, pruebas de pérdida de paquetes y revisión visual en navegador. También falta aplicar migraciones y desplegar Worker v3 antes que frontend. Un frontend v2 antiguo continúa funcionando contra el Worker v3. El frontend nuevo no manda escrituras de amigos si detecta un Worker v2; las conserva localmente para reconciliar cuando haya v3.
-
-No desplegar v3 antes de aplicar la migración `0005`; el Worker lee `holes.player_id`, `rounds.format`, `players` y `round_players` al arrancar. Esta tanda no se probó ni se desplegó.
-
-## Próximos pasos de mayor valor
-
-1. Cuando el usuario pida verificar, correr `npm test` y arreglar los fallos; sumar casos de sincronización multi-jugador con pérdida/recuperación de red.
-2. Probar una ronda Scramble completa, incluidos netos, guardado offline/reintento, tarjeta CSV y clasificación.
-3. Hacer revisión visual y una ronda de aceptación local con uno, dos y tres jugadores, incluyendo canchas de 9 y 18 hoyos.
-4. Contrastar tarjetas físicas antes de retirar avisos de baja confianza; revisar insights con cantidades mínimas y datos reales.
-5. Confirmar estado real de migraciones remotas; aplicar `0002`–`0005`, desplegar Worker v3 y después frontend. No ejecutar importaciones destructivas sin export fresco.
-
-## Estado Git / cautelas
-
-El árbol tiene muchos cambios pendientes desde antes de esta tanda: refactor de frontend, Worker/D1, archivos nuevos, cambios/retiros en tests y renombre de los archivos de legado. Nada debe suponerse como cambio exclusivo de la última sesión. Revisar `git status --short` y `git diff` al retomar. `tools/import-csv.mjs` puede vaciar tablas: no ejecutarlo sin un export fresco.
-
-Migraciones locales por confirmar/aplicar en producción: `0002_course_ref.sql` a `0005_players_and_formats.sql` (confirmar estado real con Wrangler antes de aplicar; no inferirlo del repositorio).
+La base de funcionalidades ya está en `main` y desplegada. En esta tanda quedan cambios locales: este handoff, `pending.md`, pruebas nuevas y `package-lock.json`; revisar `git status --short`. Los cambios se deben commitear y pushear para dejar el repo alineado con producción.
