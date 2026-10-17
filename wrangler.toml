@@ -1,0 +1,21 @@
+name = "golfie"
+main = "src/index.js"
+compatibility_date = "2026-10-15"
+
+# El Worker sirve también el frontend: mismo origen para la app y la API.
+# Elimina CORS y el header text/plain que pedía Apps Script para evitar el
+# preflight de CORS (se deja igual en golfie.html, pero ya no hace falta).
+[assets]
+directory = "public"
+binding = "ASSETS"
+# "none" y no "single-page-application": la app no tiene routing por URL, y con
+# el fallback a index.html un path de módulo mal escrito devolvía HTML con
+# content-type text/html, lo que produce un error de MIME type incomprensible
+# en vez de un 404 claro.
+not_found_handling = "none"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "golfie"
+database_id = "877deaae-b1f0-454e-aca9-634c070603ad"
+migrations_dir = "migrations"

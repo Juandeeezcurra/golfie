@@ -1,0 +1,56 @@
+/* ============================================================
+   GOLFIE — TOKENS
+   ============================================================
+   Única fuente de verdad de colores, espaciados y tamaños.
+   Si un valor aparece hardcodeado en otro archivo CSS, es deuda:
+   debería salir de acá.
+   ============================================================ */
+
+:root {
+  /* Superficies */
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --border: #2a2a2a;
+
+  /* Marca y semántica */
+  --green: #4ade80;
+  --green-dim: #166534;
+  --green-glow: rgba(74,222,128,0.15);
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --text: #f5f5f5;
+  --muted: #737373;
+
+  /* Radios */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-pill: 99px;
+
+  /* Escala de espaciado (antes: todo hardcodeado por clase) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 48px;
+
+  /* Escala tipográfica */
+  --fs-1: 10px;
+  --fs-2: 11px;
+  --fs-3: 13px;
+  --fs-4: 15px;
+  --fs-5: 18px;
+  --fs-6: 24px;
+  --fs-7: 36px;
+  --fs-8: 64px;
+
+  /* Familias */
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Chrome de la app */
+  --nav-height: 72px;
+}

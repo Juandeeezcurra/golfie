@@ -1,10 +1,133 @@
 # Golfie — Setup & Deploy
 
+Hay dos backends posibles. **Cloudflare (Workers + D1) es el que se usa hoy**;
+Apps Script/Sheets queda documentado más abajo como backend legado y contexto
+para la migración histórica.
+
 ## Estructura
 ```
 golfie/
-├── index.html       ← App completa (frontend)
-├── appsscript.gs    ← Backend (Google Apps Script)
+├── public/
+│   ├── index.html        ← App completa (frontend), la sirve el Worker
+│   ├── manifest.json
+│   ├── icon.png
+│   └── favicon-transparent.svg
+├── src/
+│   ├── index.js           ← Worker: reemplaza doGet/doPost
+│   ├── db.js               ← Lógica de negocio sobre D1 (upserts, scoping por user_id)
+│   └── schema.js            ← Modelo de datos: de acá sale el DDL de D1
+├── migrations/
+│   ├── 0001_init.sql
+│   └── 0002–0005_*.sql       ← Migraciones incrementales para D1 existente
+├── tools/
+│   ├── export-from-sheets.gs  ← Paso único: dump del Sheet viejo a JSON
+│   ├── import-sheets.mjs       ← Carga ese JSON a D1
+│   ├── fake-d1.mjs              ← D1 en memoria, para tests
+│   └── gen-schema.mjs            ← Regenera migrations/0001_init.sql desde schema.js
+├── tests/
+│   ├── sync/, core/, worker/ ← Tests del stack actual (cliente + Worker + D1 falso)
+│   └── README.md
+├── wrangler.toml
+├── legacy/                  ← Copia original de Apps Script/Sheets, para referencia
+└── README.md
+```
+
+---
+
+## Cloudflare — deploy
+
+Requiere una cuenta de Cloudflare y `wrangler` autenticado (`npx wrangler login`).
+
+### 1. Instalar dependencias
+```
+npm install
+```
+
+### 2. Crear la base D1
+```
+npm run db:create
+```
+Copiá el `database_id` que imprime y pegalo en `wrangler.toml`
+(reemplazá `REPLACE_WITH_REAL_DATABASE_ID`).
+
+### 3. Aplicar el esquema
+```
+npm run db:migrate:local    # para probar con `wrangler dev`
+npm run db:migrate          # contra la base real, antes de deployar
+```
+
+Este comando aplica todas las migraciones pendientes. Revisá el estado de D1
+antes de usar `--remote`; el frontend actual necesita Worker v3 y migración `0005`.
+
+### 4. Probar local
+```
+npm run dev
+```
+Abre `http://localhost:8787` — el Worker sirve `public/index.html` y la API
+en `/api`, mismo origen (no hace falta configurar nada en el frontend).
+
+### 5. Deploy
+```
+npm run deploy
+```
+
+### 6. Migrar los datos del Google Sheet
+
+**Opción A — CSV (recomendada, no toca el Apps Script en producción):**
+
+1. En el Sheet, abrí la pestaña `Rounds` → **Archivo → Descargar → Valores
+   separados por comas (.csv)**. Repetí con `Holes` y `ClubFeedback`.
+2. Importalo a D1:
+   ```
+   node tools/import-csv.mjs --local \
+     --rounds "ruta/Rounds.csv" --holes "ruta/Holes.csv" --club-feedback "ruta/ClubFeedback.csv"
+
+   node tools/import-csv.mjs --remote \
+     --rounds "ruta/Rounds.csv" --holes "ruta/Holes.csv" --club-feedback "ruta/ClubFeedback.csv"
+   ```
+   Cualquiera de las 3 rutas se puede omitir si esa hoja está vacía.
+
+**Opción B — export vía Apps Script:**
+
+1. Pegá al final de tu `appsscript.gs` el contenido de
+   `tools/export-from-sheets.gs`. Agregá el case que indica ese archivo
+   dentro de `doGet`, guardá, y redeployá tu Web App existente
+   (Implementar → Administrar implementaciones → Editar → Nueva versión).
+2. Pedí el export:
+   ```
+   curl -s "<TU_APPS_SCRIPT_URL>?action=exportAll" > golfie-export.json
+   ```
+3. Importalo a D1:
+   ```
+   node tools/import-sheets.mjs --local     # probar primero
+   node tools/import-sheets.mjs --remote    # a la base real
+   ```
+
+Ambas opciones reemplazan las tablas históricas que importan, así
+que no las repitas sin export fresco. Filas sin `user_id`
+(huérfanas, de antes de que existiera el código de usuario) se importan
+igual de huérfanas: la pantalla de "Reparar datos" de la app las sigue
+encontrando y dejando reclamar una por una, exactamente como con Sheets.
+
+### Tests
+
+`npm test` corre la suite del cliente, Worker y D1 simulado. Requiere Node 22.5+
+por `node:sqlite`. La cobertura y los invariantes están documentados en
+[`tests/README.md`](tests/README.md).
+
+---
+
+## Google Sheets / Apps Script (legado)
+
+Esta es la versión original, anterior a Cloudflare. Se conserva bajo `legacy/`
+como referencia y para entender el origen de los datos históricos. Para un
+deploy nuevo, usá Cloudflare.
+
+### Estructura
+```
+golfie/
+├── legacy/golfie.html       ← App completa (frontend)
+├── legacy/appsscript.gs    ← Backend (Google Apps Script)
 └── README.md
 ```
 
@@ -41,7 +164,7 @@ golfie/
 
 ## Paso 4 — Conectar Frontend
 
-1. Abrí `index.html` en VS Code
+1. Abrí `golfie.html` en VS Code
 2. Buscá esta línea (aprox. línea 10 del script):
    ```js
    const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
@@ -52,7 +175,7 @@ golfie/
 
 ## Paso 5 — Probar
 
-1. Abrí `index.html` directamente en el browser (doble click)
+1. Abrí `legacy/golfie.html` directamente en el browser (doble click)
 2. Creá una nueva ronda
 3. Verificá que aparezcan las hojas en el Sheet:
    - `Rounds`
@@ -88,11 +211,6 @@ golfie/
 
 ## Tests
 
-```
-node tests/run.js
-```
-
-Corren el cliente y el backend reales contra un Google Sheets simulado en
-memoria, y cubren las regresiones de sincronización: escrituras perdidas,
-datos de otro usuario, adopción de rondas sin dueño, subidas masivas.
-Detalle e invariantes en [tests/README.md](tests/README.md).
+`npm test` corre la suite del stack activo (cliente, Worker y D1 simulado).
+Requiere Node 22.5+ por `node:sqlite`; ver [tests/README.md](tests/README.md)
+para invariantes y cobertura.

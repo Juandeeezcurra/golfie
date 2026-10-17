@@ -1,0 +1,224 @@
+[
+  {
+    "course_id": "jockey-azul",
+    "name": "Jockey Club - Cancha Azul",
+    "aliases": ["Jockey Azul", "Cancha Azul"],
+    "club": "Jockey Club Argentino",
+    "city": "San Isidro, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://jockeyclub.org.ar/en/golf/index.htm; https://www.golfingrecord.com/golf-scorecard/528df79d-1751-4799-9f31-80c0df94444a",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "Tees masculinos. El tee de damas tiene par y SI propios y queda fuera por ahora. Hay una discrepancia entre fuentes en la distancia del hoyo 1 desde blancos; se conserva el valor que suma al total publicado.",
+    "tees": [
+      { "tee_id": "azules", "label": "Azules", "color": "#3b82f6", "length": 6378, "par": 72 },
+      { "tee_id": "blancos", "label": "Blancos", "color": "#e5e5e5", "length": 6149, "par": 72 },
+      { "tee_id": "amarillos", "label": "Amarillos", "color": "#fbbf24", "length": 5843, "par": 72 }
+    ],
+    "holes": [
+      {"hole":1,"par":5,"si":5,"lengths":{"azules":485,"blancos":446,"amarillos":403}}, {"hole":2,"par":5,"si":1,"lengths":{"azules":474,"blancos":474,"amarillos":459}}, {"hole":3,"par":4,"si":15,"lengths":{"azules":345,"blancos":330,"amarillos":316}},
+      {"hole":4,"par":4,"si":9,"lengths":{"azules":340,"blancos":328,"amarillos":298}}, {"hole":5,"par":3,"si":17,"lengths":{"azules":122,"blancos":114,"amarillos":102}}, {"hole":6,"par":4,"si":13,"lengths":{"azules":327,"blancos":305,"amarillos":288}},
+      {"hole":7,"par":3,"si":11,"lengths":{"azules":168,"blancos":152,"amarillos":115}}, {"hole":8,"par":4,"si":3,"lengths":{"azules":427,"blancos":417,"amarillos":391}}, {"hole":9,"par":4,"si":7,"lengths":{"azules":407,"blancos":399,"amarillos":391}},
+      {"hole":10,"par":5,"si":4,"lengths":{"azules":483,"blancos":473,"amarillos":442}}, {"hole":11,"par":3,"si":14,"lengths":{"azules":186,"blancos":176,"amarillos":166}}, {"hole":12,"par":4,"si":8,"lengths":{"azules":409,"blancos":399,"amarillos":389}},
+      {"hole":13,"par":4,"si":2,"lengths":{"azules":393,"blancos":385,"amarillos":385}}, {"hole":14,"par":3,"si":16,"lengths":{"azules":150,"blancos":140,"amarillos":124}}, {"hole":15,"par":4,"si":18,"lengths":{"azules":343,"blancos":335,"amarillos":335}},
+      {"hole":16,"par":4,"si":12,"lengths":{"azules":377,"blancos":367,"amarillos":352}}, {"hole":17,"par":5,"si":6,"lengths":{"azules":490,"blancos":482,"amarillos":470}}, {"hole":18,"par":4,"si":10,"lengths":{"azules":452,"blancos":427,"amarillos":417}}
+    ]
+  },
+  {
+    "course_id": "jockey-colorada",
+    "name": "Jockey Club - Cancha Colorada",
+    "aliases": ["Jockey Colorada", "Cancha Colorada"],
+    "club": "Jockey Club Argentino",
+    "city": "San Isidro, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://jockeyclub.org.ar/en/golf/index.htm; https://www.golfingrecord.com/golf-scorecard/79f113ae-3ef4-ccee-43ce-ec39c4ebb0e7",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "Tees masculinos. Los pares y stroke index están bien corroborados; no se pudo confirmar el color del tee más largo, por eso aparece como Largo. La tarjeta de damas usa otro par y no se mezcló.",
+    "tees": [
+      { "tee_id": "largo", "label": "Largo", "color": "#3b82f6", "length": 6577, "par": 72, "rating": 72.0 },
+      { "tee_id": "blancos", "label": "Blancos", "color": "#e5e5e5", "length": 6370, "par": 72, "rating": 70.9 },
+      { "tee_id": "amarillos", "label": "Amarillos", "color": "#fbbf24", "length": 6142, "par": 72, "rating": 69.7 }
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":5,"lengths":{"largo":425,"blancos":407,"amarillos":394}}, {"hole":2,"par":4,"si":13,"lengths":{"largo":350,"blancos":340,"amarillos":329}}, {"hole":3,"par":3,"si":17,"lengths":{"largo":148,"blancos":137,"amarillos":137}},
+      {"hole":4,"par":5,"si":1,"lengths":{"largo":490,"blancos":480,"amarillos":469}}, {"hole":5,"par":4,"si":11,"lengths":{"largo":340,"blancos":325,"amarillos":312}}, {"hole":6,"par":4,"si":9,"lengths":{"largo":355,"blancos":345,"amarillos":335}},
+      {"hole":7,"par":4,"si":3,"lengths":{"largo":425,"blancos":415,"amarillos":403}}, {"hole":8,"par":3,"si":15,"lengths":{"largo":208,"blancos":198,"amarillos":184}}, {"hole":9,"par":4,"si":7,"lengths":{"largo":415,"blancos":405,"amarillos":395}},
+      {"hole":10,"par":5,"si":6,"lengths":{"largo":470,"blancos":457,"amarillos":445}}, {"hole":11,"par":5,"si":4,"lengths":{"largo":506,"blancos":491,"amarillos":476}}, {"hole":12,"par":3,"si":18,"lengths":{"largo":175,"blancos":161,"amarillos":152}},
+      {"hole":13,"par":4,"si":8,"lengths":{"largo":444,"blancos":434,"amarillos":420}}, {"hole":14,"par":4,"si":12,"lengths":{"largo":390,"blancos":378,"amarillos":367}}, {"hole":15,"par":5,"si":2,"lengths":{"largo":511,"blancos":500,"amarillos":458}},
+      {"hole":16,"par":4,"si":10,"lengths":{"largo":401,"blancos":392,"amarillos":382}}, {"hole":17,"par":3,"si":16,"lengths":{"largo":170,"blancos":160,"amarillos":147}}, {"hole":18,"par":4,"si":14,"lengths":{"largo":354,"blancos":345,"amarillos":337}}
+    ]
+  },
+  {
+    "course_id": "boulogne",
+    "name": "Boulogne Golf Club",
+    "aliases": ["Bulogne", "Boulogne"],
+    "club": "Boulogne Golf Club",
+    "city": "Boulogne, Buenos Aires",
+    "holes_count": 9,
+    "units": "meters",
+    "source": "https://www.allsquaregolf.com/golf-courses/argentina/boulogne-golf-club; https://www.golfpass.com/courses/30352-boulogne-golf-club/scorecard-and-layout",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "Cancha de 9 hoyos. Los nombres por color de tee difieren entre fuentes; se usan etiquetas neutrales. No hay slope/rating publicados.",
+    "tees": [
+      { "tee_id": "largo", "label": "Largo", "color": "#3b82f6", "length": 2920, "par": 35 },
+      { "tee_id": "medio", "label": "Medio", "color": "#e5e5e5", "length": 2840, "par": 35 },
+      { "tee_id": "corto", "label": "Corto", "color": "#fbbf24", "length": 2479, "par": 35 }
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":1,"lengths":{"largo":410,"medio":402,"corto":298}}, {"hole":2,"par":3,"si":9,"lengths":{"largo":134,"medio":111,"corto":78}}, {"hole":3,"par":4,"si":2,"lengths":{"largo":352,"medio":338,"corto":320}},
+      {"hole":4,"par":4,"si":7,"lengths":{"largo":315,"medio":305,"corto":299}}, {"hole":5,"par":4,"si":3,"lengths":{"largo":357,"medio":343,"corto":316}}, {"hole":6,"par":4,"si":6,"lengths":{"largo":366,"medio":375,"corto":347}},
+      {"hole":7,"par":4,"si":5,"lengths":{"largo":338,"medio":314,"corto":258}}, {"hole":8,"par":3,"si":8,"lengths":{"largo":159,"medio":177,"corto":133}}, {"hole":9,"par":5,"si":4,"lengths":{"largo":489,"medio":475,"corto":430}}
+    ]
+  },
+  {
+    "course_id": "san-patricio",
+    "name": "San Patricio Golf",
+    "club": "San Patricio Golf",
+    "city": "General Pacheco, Buenos Aires",
+    "holes_count": 18,
+    "units": "meters",
+    "source": "https://www.allsquaregolf.com/golf-courses/argentina/san-patricio-golf; https://www.golfpass.com/courses/30416-san-patricio-golf/scorecard-and-layout",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "Per-hoyo distancias en AllSquare están en metros aunque el encabezado diga yardas. Tee blanco total presenta discrepancia entre fuentes.",
+    "tees": [
+      { "tee_id": "azules", "label": "Azules", "color": "#3b82f6", "length": 5988, "par": 72, "rating": 70.2, "slope": 127 },
+      { "tee_id": "blancos", "label": "Blancos", "color": "#e5e5e5", "length": 5778, "par": 72, "rating": 69.3, "slope": 119 },
+      { "tee_id": "rojos", "label": "Rojos", "color": "#f87171", "length": 5163, "par": 72, "rating": 71.8, "slope": 120 }
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":7,"lengths":{"azules":321,"blancos":310,"rojos":266}}, {"hole":2,"par":4,"si":5,"lengths":{"azules":368,"blancos":358,"rojos":320}}, {"hole":3,"par":3,"si":17,"lengths":{"azules":140,"blancos":131,"rojos":119}},
+      {"hole":4,"par":5,"si":11,"lengths":{"azules":450,"blancos":441,"rojos":402}}, {"hole":5,"par":4,"si":9,"lengths":{"azules":335,"blancos":326,"rojos":316}}, {"hole":6,"par":5,"si":1,"lengths":{"azules":489,"blancos":480,"rojos":411}},
+      {"hole":7,"par":4,"si":3,"lengths":{"azules":327,"blancos":314,"rojos":277}}, {"hole":8,"par":3,"si":15,"lengths":{"azules":165,"blancos":152,"rojos":130}}, {"hole":9,"par":4,"si":13,"lengths":{"azules":365,"blancos":349,"rojos":306}},
+      {"hole":10,"par":5,"si":6,"lengths":{"azules":475,"blancos":463,"rojos":416}}, {"hole":11,"par":3,"si":14,"lengths":{"azules":180,"blancos":171,"rojos":160}}, {"hole":12,"par":5,"si":2,"lengths":{"azules":460,"blancos":451,"rojos":423}},
+      {"hole":13,"par":4,"si":12,"lengths":{"azules":338,"blancos":329,"rojos":296}}, {"hole":14,"par":4,"si":8,"lengths":{"azules":369,"blancos":353,"rojos":308}}, {"hole":15,"par":3,"si":18,"lengths":{"azules":139,"blancos":139,"rojos":124}},
+      {"hole":16,"par":4,"si":16,"lengths":{"azules":323,"blancos":286,"rojos":248}}, {"hole":17,"par":4,"si":10,"lengths":{"azules":373,"blancos":364,"rojos":316}}, {"hole":18,"par":4,"si":4,"lengths":{"azules":371,"blancos":361,"rojos":325}}
+    ]
+  },
+  {
+    "course_id": "san-isidro-golf",
+    "name": "San Isidro Golf Club",
+    "club": "San Isidro Golf Club",
+    "city": "San Isidro, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://sigc.com.ar/wp-content/uploads/2019/10/tarjeta-SIGC-2019.pdf; https://www.golfify.io/courses/san-isidro-golf-club",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "La tarjeta oficial es de 2019; los datos por hoyo se cotejaron con Golfify y podrían haber cambiado desde entonces. No se incluyeron tees de damas porque su SI por tee no está confirmado.",
+    "tees": [
+      {"tee_id":"negros","label":"Negros","color":"#2a2a2a","length":6605,"par":72,"rating":71.8,"slope":125},
+      {"tee_id":"azules","label":"Azules","color":"#3b82f6","length":6357,"par":72},
+      {"tee_id":"blancos","label":"Blancos","color":"#e5e5e5","length":5908,"par":72}
+    ],
+    "holes": [
+      {"hole":1,"par":5,"si":13,"lengths":{"negros":516,"azules":501,"blancos":492}}, {"hole":2,"par":4,"si":9,"lengths":{"negros":363,"azules":351,"blancos":338}}, {"hole":3,"par":3,"si":17,"lengths":{"negros":161,"azules":151,"blancos":140}},
+      {"hole":4,"par":5,"si":11,"lengths":{"negros":540,"azules":521,"blancos":444}}, {"hole":5,"par":4,"si":7,"lengths":{"negros":347,"azules":333,"blancos":310}}, {"hole":6,"par":4,"si":3,"lengths":{"negros":417,"azules":407,"blancos":407}},
+      {"hole":7,"par":3,"si":15,"lengths":{"negros":153,"azules":131,"blancos":111}}, {"hole":8,"par":4,"si":1,"lengths":{"negros":409,"azules":390,"blancos":376}}, {"hole":9,"par":4,"si":5,"lengths":{"negros":404,"azules":387,"blancos":354}},
+      {"hole":10,"par":3,"si":16,"lengths":{"negros":142,"azules":142,"blancos":133}}, {"hole":11,"par":4,"si":14,"lengths":{"negros":350,"azules":335,"blancos":320}}, {"hole":12,"par":4,"si":6,"lengths":{"negros":391,"azules":371,"blancos":358}},
+      {"hole":13,"par":4,"si":8,"lengths":{"negros":383,"azules":375,"blancos":368}}, {"hole":14,"par":5,"si":12,"lengths":{"negros":491,"azules":476,"blancos":451}}, {"hole":15,"par":4,"si":2,"lengths":{"negros":419,"azules":403,"blancos":363}},
+      {"hole":16,"par":3,"si":10,"lengths":{"negros":196,"azules":181,"blancos":166}}, {"hole":17,"par":4,"si":4,"lengths":{"negros":424,"azules":414,"blancos":347}}, {"hole":18,"par":5,"si":18,"lengths":{"negros":499,"azules":488,"blancos":430}}
+    ]
+  },
+  {
+    "course_id": "pilar-golf-azul-blanca",
+    "name": "Pilar Golf (Azul + Blanca)",
+    "club": "Pilar Golf",
+    "city": "Fátima, Pilar, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://www.golfpass.com/travel-advisor/courses/30410-pilar-golf-blue-course/scorecard-and-layout; https://www.golfpass.com/travel-advisor/courses/30409-pilar-golf-white-course/scorecard-and-layout",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "Pilar tiene 27 hoyos en tres vueltas. Este registro combina Azul + Blanca (18 hoyos); la vuelta Colorada no se incluyó porque no se encontró una tarjeta fiable.",
+    "tees": [
+      {"tee_id":"negros","label":"Negros","color":"#2a2a2a","length":7212,"par":72},
+      {"tee_id":"azules","label":"Azules","color":"#3b82f6","length":6810,"par":72},
+      {"tee_id":"blancos","label":"Blancos","color":"#e5e5e5","length":6433,"par":72},
+      {"tee_id":"amarillos","label":"Amarillos","color":"#fbbf24","length":6067,"par":72},
+      {"tee_id":"rojos","label":"Rojos","color":"#f87171","length":5707,"par":72}
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":7,"lengths":{"negros":423,"azules":403,"blancos":379,"amarillos":359,"rojos":339}}, {"hole":2,"par":5,"si":1,"lengths":{"negros":584,"azules":564,"blancos":548,"amarillos":531,"rojos":510}}, {"hole":3,"par":4,"si":13,"lengths":{"negros":415,"azules":384,"blancos":358,"amarillos":343,"rojos":323}},
+      {"hole":4,"par":4,"si":11,"lengths":{"negros":385,"azules":355,"blancos":328,"amarillos":297,"rojos":277}}, {"hole":5,"par":4,"si":3,"lengths":{"negros":443,"azules":422,"blancos":401,"amarillos":388,"rojos":367}}, {"hole":6,"par":3,"si":15,"lengths":{"negros":211,"azules":189,"blancos":174,"amarillos":158,"rojos":145}},
+      {"hole":7,"par":5,"si":9,"lengths":{"negros":563,"azules":548,"blancos":533,"amarillos":510,"rojos":486}}, {"hole":8,"par":3,"si":17,"lengths":{"negros":151,"azules":139,"blancos":128,"amarillos":107,"rojos":96}}, {"hole":9,"par":4,"si":5,"lengths":{"negros":450,"azules":431,"blancos":398,"amarillos":378,"rojos":352}},
+      {"hole":10,"par":5,"si":8,"lengths":{"negros":587,"azules":570,"blancos":557,"amarillos":527,"rojos":510}}, {"hole":11,"par":3,"si":18,"lengths":{"negros":220,"azules":197,"blancos":174,"amarillos":154,"rojos":134}}, {"hole":12,"par":4,"si":10,"lengths":{"negros":406,"azules":380,"blancos":354,"amarillos":340,"rojos":316}},
+      {"hole":13,"par":5,"si":12,"lengths":{"negros":510,"azules":484,"blancos":461,"amarillos":442,"rojos":420}}, {"hole":14,"par":4,"si":2,"lengths":{"negros":437,"azules":419,"blancos":403,"amarillos":376,"rojos":360}}, {"hole":15,"par":4,"si":6,"lengths":{"negros":412,"azules":390,"blancos":373,"amarillos":352,"rojos":329}},
+      {"hole":16,"par":4,"si":14,"lengths":{"negros":399,"azules":367,"blancos":344,"amarillos":329,"rojos":304}}, {"hole":17,"par":3,"si":16,"lengths":{"negros":169,"azules":152,"blancos":131,"amarillos":108,"rojos":95}}, {"hole":18,"par":4,"si":4,"lengths":{"negros":447,"azules":416,"blancos":389,"amarillos":368,"rojos":344}}
+    ]
+  },
+  {
+    "course_id": "newman",
+    "name": "Club Newman",
+    "club": "Club Newman",
+    "city": "Benavídez, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://18birdies.com/golf-courses/club/d28891e0-86ac-11e4-8c28-020000005b00/club-newman",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "tees": [{"tee_id":"azules","label":"Azules","color":"#3b82f6","length":6888,"par":73}],
+    "holes": [
+      {"hole":1,"par":4,"si":15,"lengths":{"azules":370}}, {"hole":2,"par":4,"si":11,"lengths":{"azules":380}}, {"hole":3,"par":4,"si":9,"lengths":{"azules":399}},
+      {"hole":4,"par":5,"si":7,"lengths":{"azules":550}}, {"hole":5,"par":3,"si":17,"lengths":{"azules":147}}, {"hole":6,"par":4,"si":1,"lengths":{"azules":421}},
+      {"hole":7,"par":5,"si":5,"lengths":{"azules":541}}, {"hole":8,"par":3,"si":13,"lengths":{"azules":232}}, {"hole":9,"par":5,"si":3,"lengths":{"azules":568}},
+      {"hole":10,"par":4,"si":6,"lengths":{"azules":411}}, {"hole":11,"par":4,"si":12,"lengths":{"azules":360}}, {"hole":12,"par":4,"si":2,"lengths":{"azules":452}},
+      {"hole":13,"par":5,"si":10,"lengths":{"azules":497}}, {"hole":14,"par":3,"si":14,"lengths":{"azules":176}}, {"hole":15,"par":4,"si":16,"lengths":{"azules":323}},
+      {"hole":16,"par":3,"si":18,"lengths":{"azules":164}}, {"hole":17,"par":5,"si":4,"lengths":{"azules":508}}, {"hole":18,"par":4,"si":8,"lengths":{"azules":389}}
+    ]
+  },
+  {
+    "course_id": "pacheco-golf",
+    "name": "Pacheco Golf Club",
+    "club": "Pacheco Golf Club",
+    "city": "General Pacheco, Buenos Aires",
+    "holes_count": 18,
+    "units": "yards",
+    "source": "https://www.golfify.io/courses/pacheco-golf-club; https://www.golfcore.org/courses/pacheco-golf/",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "tees": [
+      {"tee_id":"azules","label":"Azules","color":"#3b82f6","length":6542,"par":72,"rating":70.6,"slope":124},
+      {"tee_id":"blancos","label":"Blancos","color":"#e5e5e5","length":6204,"par":72,"rating":69.3,"slope":118},
+      {"tee_id":"rojos","label":"Rojos","color":"#f87171","length":5775,"par":72,"rating":72.7,"slope":124}
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":13,"lengths":{"azules":358,"blancos":338,"rojos":322}}, {"hole":2,"par":5,"si":3,"lengths":{"azules":500,"blancos":480,"rojos":464}}, {"hole":3,"par":4,"si":17,"lengths":{"azules":366,"blancos":336,"rojos":311}},
+      {"hole":4,"par":4,"si":7,"lengths":{"azules":363,"blancos":343,"rojos":328}}, {"hole":5,"par":3,"si":15,"lengths":{"azules":175,"blancos":160,"rojos":115}}, {"hole":6,"par":4,"si":9,"lengths":{"azules":390,"blancos":375,"rojos":327}},
+      {"hole":7,"par":5,"si":1,"lengths":{"azules":520,"blancos":493,"rojos":438}}, {"hole":8,"par":4,"si":5,"lengths":{"azules":374,"blancos":359,"rojos":346}}, {"hole":9,"par":3,"si":11,"lengths":{"azules":150,"blancos":133,"rojos":116}},
+      {"hole":10,"par":4,"si":18,"lengths":{"azules":360,"blancos":332,"rojos":305}}, {"hole":11,"par":4,"si":10,"lengths":{"azules":370,"blancos":350,"rojos":330}}, {"hole":12,"par":5,"si":2,"lengths":{"azules":522,"blancos":504,"rojos":487}},
+      {"hole":13,"par":4,"si":6,"lengths":{"azules":400,"blancos":380,"rojos":365}}, {"hole":14,"par":3,"si":16,"lengths":{"azules":176,"blancos":161,"rojos":148}}, {"hole":15,"par":4,"si":4,"lengths":{"azules":413,"blancos":400,"rojos":387}},
+      {"hole":16,"par":3,"si":14,"lengths":{"azules":180,"blancos":160,"rojos":143}}, {"hole":17,"par":4,"si":8,"lengths":{"azules":405,"blancos":385,"rojos":367}}, {"hole":18,"par":5,"si":12,"lengths":{"azules":520,"blancos":495,"rojos":476}}
+    ]
+  },
+  {
+    "course_id": "canuelas",
+    "name": "Cañuelas Golf Club",
+    "club": "Cañuelas Golf Club",
+    "city": "Cañuelas, Buenos Aires",
+    "holes_count": 18,
+    "units": "meters",
+    "source": "https://www.allsquaregolf.com/golf-courses/argentina/canuelas-golf-club; https://www.golfpass.com/courses/30515-canuelas-golf-club/scorecard-and-layout",
+    "verified_at": "2026-10-16",
+    "confidence": "medium",
+    "notes": "AllSquare muestra metros aunque titula yardas. Las longitudes rojas de los hoyos 4 y 12 son sospechosas y requieren revisar tarjeta.",
+    "tees": [
+      {"tee_id":"negros","label":"Negros","color":"#2a2a2a","length":6647,"par":72,"rating":75.1,"slope":125},
+      {"tee_id":"azules","label":"Azules","color":"#3b82f6","length":6319,"par":72,"rating":73.1,"slope":125},
+      {"tee_id":"blancos","label":"Blancos","color":"#e5e5e5","length":5898,"par":72,"rating":71.2,"slope":122},
+      {"tee_id":"rojos","label":"Rojos","color":"#f87171","length":5481,"par":72,"rating":69.0,"slope":115}
+    ],
+    "holes": [
+      {"hole":1,"par":4,"si":11,"lengths":{"negros":362,"azules":355,"blancos":340,"rojos":290}}, {"hole":2,"par":5,"si":1,"lengths":{"negros":557,"azules":522,"blancos":472,"rojos":430}}, {"hole":3,"par":3,"si":9,"lengths":{"negros":142,"azules":125,"blancos":105,"rojos":64}},
+      {"hole":4,"par":4,"si":7,"lengths":{"negros":410,"azules":380,"blancos":331,"rojos":364}}, {"hole":5,"par":5,"si":3,"lengths":{"negros":505,"azules":481,"blancos":442,"rojos":400}}, {"hole":6,"par":3,"si":17,"lengths":{"negros":219,"azules":176,"blancos":152,"rojos":131}},
+      {"hole":7,"par":4,"si":13,"lengths":{"negros":367,"azules":359,"blancos":346,"rojos":315}}, {"hole":8,"par":4,"si":15,"lengths":{"negros":382,"azules":368,"blancos":350,"rojos":320}}, {"hole":9,"par":4,"si":5,"lengths":{"negros":395,"azules":378,"blancos":354,"rojos":322}},
+      {"hole":10,"par":4,"si":8,"lengths":{"negros":410,"azules":392,"blancos":369,"rojos":329}}, {"hole":11,"par":3,"si":12,"lengths":{"negros":207,"azules":189,"blancos":176,"rojos":153}}, {"hole":12,"par":4,"si":6,"lengths":{"negros":409,"azules":394,"blancos":353,"rojos":382}},
+      {"hole":13,"par":3,"si":18,"lengths":{"negros":175,"azules":156,"blancos":143,"rojos":122}}, {"hole":14,"par":5,"si":4,"lengths":{"negros":494,"azules":475,"blancos":462,"rojos":446}}, {"hole":15,"par":4,"si":16,"lengths":{"negros":373,"azules":367,"blancos":349,"rojos":325}},
+      {"hole":16,"par":4,"si":10,"lengths":{"negros":382,"azules":377,"blancos":360,"rojos":337}}, {"hole":17,"par":4,"si":14,"lengths":{"negros":359,"azules":343,"blancos":329,"rojos":314}}, {"hole":18,"par":5,"si":2,"lengths":{"negros":499,"azules":482,"blancos":465,"rojos":437}}
+    ]
+  }
+]
