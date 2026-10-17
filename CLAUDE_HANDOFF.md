@@ -1,7 +1,7 @@
 # Golfie v2 — handoff para Claude
 
-Actualizado: 2026-10-16 (America/Argentina/Buenos_Aires)  
-Repo: `C:\Users\juand\OneDrive\Desktop\Golfie.ia`  
+Actualizado: 2026-10-16 (America/Argentina/Buenos_Aires)
+Repo: `C:\Users\juand\OneDrive\Desktop\Golfie.ia`
 Producción: https://golfie.shymie.workers.dev
 
 ## Objetivo y decisiones
