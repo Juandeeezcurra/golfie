@@ -171,6 +171,7 @@ export async function addHole(db, d) {
     penalties: d.penalties,
     up_and_down: d.up_and_down,
     sand_save: d.sand_save,
+    bunker: d.bunker,
     user_id: d.user_id || '',
   };
 

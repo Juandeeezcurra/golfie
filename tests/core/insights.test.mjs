@@ -172,3 +172,14 @@ test('3 putts se cuentan en el juego corto', () => {
   const sg = shortGame([hole(4, 5, { putts: 3 }), hole(4, 4, { putts: 2 }), hole(3, 5, { putts: 4 }), hole(4, 4, { putts: '' })]);
   assert.equal(sg.threePutts, 2);
 });
+
+test('búnkers: cuenta los marcados y los sand saves de rondas viejas', () => {
+  const sg = shortGame([
+    hole(4, 4, { bunker: true, sand_save: true }),
+    hole(4, 6, { bunker: true, sand_save: false }),
+    hole(4, 4, { sand_save: true }),          // ronda vieja: sin campo bunker
+    hole(4, 4, { bunker: false }),
+  ]);
+  assert.equal(sg.bunkers, 3);
+  assert.equal(sg.sandSaves, 2);
+});

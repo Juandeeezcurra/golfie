@@ -170,6 +170,8 @@ export function shortGame(holes) {
     penalties: list.reduce((a, h) => a + (Number(h.penalties) || 0), 0),
     upDowns,
     sandSaves: list.filter(h => h.sand_save === true).length,
+    // Rondas anteriores al botón de búnker: un sand save implica que hubo búnker.
+    bunkers: list.filter(h => h.bunker === true || h.sand_save === true).length,
     threePutts: list.filter(h => h.putts !== '' && h.putts !== null && Number(h.putts) >= 3).length,
     holes: list.length,
     missedGreens,

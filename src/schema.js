@@ -77,6 +77,7 @@ export const COLUMNS = {
     penalties: T.NUM,
     up_and_down: T.BOOL,
     sand_save: T.BOOL,
+    bunker: T.BOOL,
     user_id: T.TEXT,
   },
   [SHEETS.CLUB_FEEDBACK]: {

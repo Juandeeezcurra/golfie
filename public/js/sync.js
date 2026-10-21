@@ -267,7 +267,7 @@ export function createSync({
         if (!h || h.hole_number === null || h.hole_number === undefined) return;
         const remote = holesSrvMe[h.hole_number];
         const fields = ['par', 'score', 'putts', 'fairway_hit', 'green_in_regulation', 'penalties', 'up_and_down', 'sand_save'];
-        if (supportsPlayers) fields.push('stroke_index', 'hole_length');
+        if (supportsPlayers) fields.push('stroke_index', 'hole_length', 'bunker');
         if (!remote || !sameFields(remote, h, fields)) add('addHole', { ...h, player_id: 'me', round_id: rid });
       });
 
@@ -286,7 +286,7 @@ export function createSync({
         Object.values(playerHoles).forEach(h => {
           if (!h || h.hole_number == null) return;
           const remote = serverPlayerHoles[h.hole_number];
-          const fields = ['par', 'score', 'putts', 'fairway_hit', 'green_in_regulation', 'penalties', 'up_and_down', 'sand_save', 'stroke_index', 'hole_length'];
+          const fields = ['par', 'score', 'putts', 'fairway_hit', 'green_in_regulation', 'penalties', 'up_and_down', 'sand_save', 'stroke_index', 'hole_length', 'bunker'];
           if (!remote || !sameFields(remote, h, fields)) add('addHole', { ...h, player_id: pid, round_id: rid });
         });
       });
@@ -338,7 +338,7 @@ export function createSync({
       const holesForRound = srvHoles[rid] || {};
       const playerHoles = holesForRound[d.player_id || 'me'] || holesForRound;
       const holeFields = ['par', 'score', 'putts', 'fairway_hit', 'green_in_regulation', 'penalties', 'up_and_down', 'sand_save'];
-      if (supportsPlayers) holeFields.push('stroke_index', 'hole_length');
+      if (supportsPlayers) holeFields.push('stroke_index', 'hole_length', 'bunker');
       if (it.endpoint === 'addHole' && playerHoles[d.hole_number] && sameFields(playerHoles[d.hole_number], d, holeFields)) drop.add(it.id);
       const remoteClub = (srvCF[rid] || {})[d.club];
       if (it.endpoint === 'addClubFeedback' && remoteClub !== undefined

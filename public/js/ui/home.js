@@ -229,8 +229,9 @@ function shortGameHtml(sg) {
         <div class="stat-note">${sg.upDowns} salvadas en ${sg.missedGreens} greens errados</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val">${sg.sandSaves}</div>
-        <div class="stat-lbl">Sand saves</div>
+        <div class="stat-val${sg.bunkers ? '' : ' green'}">${sg.bunkers}</div>
+        <div class="stat-lbl">Búnkers</div>
+        <div class="stat-note">${sg.bunkers ? `${sg.sandSaves} salvados (par o mejor)` : 'Ninguno'}</div>
       </div>
       <div class="stat-card">
         <div class="stat-val${sg.penalties ? '' : ' green'}">${sg.penalties}</div>

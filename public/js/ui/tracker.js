@@ -12,7 +12,7 @@ import { showModal } from './modal.js';
 import { goTo } from './router.js';
 
 let currentScore = 4, currentPutts = 2, currentPenalties = 0, currentPar = 4;
-let toggles = { fairway: false, gir: false, updown: false, sandsave: false };
+let toggles = { fairway: false, gir: false, updown: false, bunker: false };
 
 function roundHoleCount() {
   return Number(state.currentRound && state.currentRound.course_holes_count) || 18;
@@ -131,7 +131,8 @@ export function loadHoleState() {
     toggles.fairway = saved.fairway_hit || false;
     toggles.gir = saved.green_in_regulation || false;
     toggles.updown = saved.up_and_down || false;
-    toggles.sandsave = saved.sand_save || false;
+    // Rondas viejas no tenían búnker: si hubo sand save, es que hubo búnker.
+    toggles.bunker = saved.bunker === true || saved.sand_save === true;
   } else {
     // Con cancha del catálogo el par viene cargado: uno menos que tocar por
     // hoyo, y el score arranca en par en vez de en 4 siempre.
@@ -140,7 +141,7 @@ export function loadHoleState() {
     currentScore = currentPar;
     currentPutts = 2;
     currentPenalties = 0;
-    toggles = { fairway: false, gir: false, updown: false, sandsave: false };
+    toggles = { fairway: false, gir: false, updown: false, bunker: false };
   }
 }
 
@@ -257,7 +258,7 @@ function updateScoreLabel() {
 }
 
 function updateToggles() {
-  ['fairway', 'gir', 'updown', 'sandsave'].forEach(t => {
+  ['fairway', 'gir', 'updown', 'bunker'].forEach(t => {
     document.getElementById('toggle-' + t).classList.toggle('on', toggles[t]);
   });
 }
@@ -280,7 +281,9 @@ export function saveHole() {
     green_in_regulation: toggles.gir,
     penalties: currentPenalties,
     up_and_down: toggles.updown,
-    sand_save: toggles.sandsave,
+    bunker: toggles.bunker,
+    // Sand save: salir del búnker y hacer par o mejor.
+    sand_save: toggles.bunker && currentScore <= currentPar,
     // Si el hoyo ya estaba guardado se respeta su snapshot de la tarjeta.
     stroke_index: state.holes[state.currentHole]?.stroke_index ?? currentHoleInfo()?.si ?? null,
     hole_length: state.holes[state.currentHole]?.hole_length ?? currentHoleInfo()?.length ?? null,

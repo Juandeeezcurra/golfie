@@ -77,3 +77,13 @@ test('un hoyo corregido sin señal mantiene el total nuevo después del sync', a
   assert.equal(rowsOf(b, 'rounds')[0].total_score, 88);
   assert.equal(rowsOf(b, 'holes').find(h => h.hole_number === 4).score, 3);
 });
+
+test('el búnker de un hoyo llega al servidor y vuelve igual', async () => {
+  const b = makeBackend();
+  const c = makeClient(b);
+  await c.sync.postToSheets('addRound', { round_id: 'r-bk', date: '2026-10-20', course_name: 'Olivos', tees: 'Blancos', slope_rating: 130, course_rating: 71 });
+  await c.sync.postToSheets('addHole', { round_id: 'r-bk', hole_number: 1, par: 4, score: 4, putts: 2, bunker: true, sand_save: true });
+  assert.equal(rowsOf(b, 'holes')[0].bunker, 1);
+  const res = await (await b.fetch(`/api?action=getHoles&user_id=${c.store.getUserId()}`)).json();
+  assert.equal(res[0].bunker, true);
+});
