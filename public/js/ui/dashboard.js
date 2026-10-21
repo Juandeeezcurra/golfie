@@ -192,6 +192,7 @@ export function renderDashboard(round, meHoles) {
     <button class="cta-btn" style="margin-top:32px;" onclick="goTo('new-round')">+ Nueva Ronda</button>
     <button class="secondary-btn" style="margin-top:10px;" onclick="exportRoundCSV('${jsStr(round.round_id)}')">Descargar tarjeta CSV</button>
     <button class="secondary-btn" style="margin-top:10px;" onclick="switchTab('history')">Ver historial</button>
+    <button class="danger-btn" onclick="deleteRound('${jsStr(round.round_id)}')">Eliminar ronda</button>
   `;
 }
 

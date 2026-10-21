@@ -38,16 +38,22 @@
   cursor: pointer; transition: border-color 0.2s;
 }
 .round-card:active { border-color: var(--green); }
-.delete-round-btn {
-  background: none; border: 1px solid var(--border); color: var(--muted);
-  width: 28px; height: 28px; border-radius: 50%; font-size: 12px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.delete-round-btn:active { border-color: var(--red); color: var(--red); }
 .round-card-left .course { font-size: 16px; font-weight: 500; }
 .round-card-left .date { font-size: 13px; color: var(--muted); margin-top: 2px; }
-.round-card-right .score-big { font-family: var(--font-display); font-size: 32px; color: var(--green); line-height: 1; }
-.round-card-right .score-label { font-size: 13px; color: var(--muted); }
+.round-card-right { display: flex; align-items: center; flex-shrink: 0; }
+/* Ancho fijo: así los scores en verde quedan alineados en columna entre tarjetas. */
+.score-cell { display: flex; align-items: baseline; gap: 6px; }
+.round-card-right .score-big { font-family: var(--font-display); font-size: 32px; color: var(--green); line-height: 1; min-width: 44px; text-align: right; }
+.round-card-right .score-label { font-size: 13px; color: var(--muted); min-width: 28px; }
+.round-card-left { min-width: 0; }
+
+/* Acción destructiva, al pie de la ronda */
+.danger-btn {
+  width: 100%; padding: 14px; margin-top: 28px; background: transparent; color: var(--red);
+  border: 1px solid rgba(248,113,113,.3); border-radius: var(--radius); font-family: var(--font-body);
+  font-size: 15px; cursor: pointer;
+}
+.danger-btn:active { background: rgba(248,113,113,.08); }
 
 /* AMIGOS */
 .friend-card {
@@ -192,7 +198,7 @@
   padding: var(--sp-5) var(--sp-5) var(--sp-4);
 }
 .hero-label { font-size: var(--fs-2); letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
-.hero-row { display: flex; align-items: baseline; gap: var(--sp-3); margin-top: 2px; }
+.hero-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-3); margin-top: 2px; }
 .hero-val { font-family: var(--font-display); font-size: 68px; line-height: 1; color: var(--green); }
 .hero-sub { font-size: var(--fs-3); color: var(--muted); margin-top: var(--sp-2); }
 
@@ -242,6 +248,12 @@
 .stat-tag.green { color: var(--green); }
 .stat-tag.red { color: var(--red); }
 .stat-name { font-size: var(--fs-4); font-weight: 500; }
+
+/* Palos */
+.club-stat-row { display: flex; align-items: center; gap: var(--sp-3); padding: 7px 0; }
+.club-stat-name { flex: 1; min-width: 0; font-size: var(--fs-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.club-stat-bar { width: 96px; flex-shrink: 0; }
+.club-stat-n { width: 20px; text-align: right; font-family: var(--font-display); font-size: 18px; color: var(--muted); flex-shrink: 0; }
 
 /* Por cancha */
 .course-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px solid var(--border); }

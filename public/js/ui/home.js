@@ -1,16 +1,16 @@
 import { app } from '../context.js';
 import { state } from '../state.js';
-import { formatDate, teeColor, jsStr } from '../util.js';
+import { formatDate, teeColor, jsStr, attrText } from '../util.js';
 import { formatDiff } from '../core/stats.js';
 import {
   completedRounds, scoreTrend, scoringDistribution, byParType,
-  byCourse, handicapIndexNow, scoringForm, shortGame, playAverages,
+  byCourse, byCourseNine, handicapIndexNow, provisionalHandicapIndex, scoringForm, shortGame, playAverages,
 } from '../core/insights.js';
 import { sparkline, stackedBar, meter } from './charts.js';
 import { showModal } from './modal.js';
 import { showToast } from './toast.js';
 
-export function roundCardHTML(r, deletable = false) {
+export function roundCardHTML(r) {
   // A partial round may already have an accumulated total. `completed` is
   // the authoritative status; old imported rounds without that field keep
   // the historical score-based fallback.
@@ -18,23 +18,27 @@ export function roundCardHTML(r, deletable = false) {
   const isInProgress = !hasTotal || r.completed === false;
   const diff = r.total_score - r.par_total;
   const diffStr = diff > 0 ? '+' + diff : diff < 0 ? String(diff) : 'E';
+  // Hoyos realmente jugados: los guardados; si no hay (ronda importada), el
+  // total de la cancha.
+  const played = Object.keys(app.store.loadHoles(r.round_id)).length || Number(r.course_holes_count) || 0;
   const teeBall = r.tees
     ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${teeColor(r.tees)};border:1px solid rgba(255,255,255,0.2);margin-right:5px;flex-shrink:0;"></span>`
     : '';
   return `<div class="round-card" onclick="viewRound('${jsStr(r.round_id)}')">
     <div class="round-card-left">
       <div class="course">${r.course_name || '—'}${r.format === 'scramble' ? '<span style="margin-left:7px;font-size:9px;letter-spacing:1px;color:var(--green);">SCRAMBLE</span>' : ''}</div>
-      <div class="date" style="display:flex;align-items:center;">${teeBall}${formatDate(r.date)}</div>
+      <div class="date" style="display:flex;align-items:center;">${teeBall}${formatDate(r.date)}${played ? ` · ${played} ${played === 1 ? 'hoyo' : 'hoyos'}` : ''}</div>
     </div>
-    <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
+    <div class="round-card-right">
       ${isInProgress
         ? `<span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">En curso</span>`
-        : `<div style="display:flex;align-items:baseline;gap:5px;"><div class="score-big">${r.total_score}</div><div class="score-label">${diffStr}</div></div>`
+        : `<div class="score-cell"><div class="score-big">${r.total_score}</div><div class="score-label">${diffStr}</div></div>`
       }
-      ${deletable ? `<button class="delete-round-btn" onclick="event.stopPropagation();deleteRound('${jsStr(r.round_id)}')" title="Borrar">✕</button>` : ''}
     </div>
   </div>`;
 }
+
+const RATINGS = ['verde', 'amarillo', 'rojo'];
 
 export function getAllClubStats() {
   const rounds = app.store.loadRounds().filter(r => r.completed);
@@ -42,8 +46,10 @@ export function getAllClubStats() {
   rounds.forEach(r => {
     const cf = app.store.loadClubs(r.round_id);
     Object.entries(cf).forEach(([club, fb]) => {
-      if (!totals[club]) totals[club] = { verde: 0, amarillo: 0, rojo: 0 };
-      if (fb.rating) totals[club][fb.rating]++;
+      if (!totals[club]) totals[club] = { verde: 0, amarillo: 0, rojo: 0, tags: {} };
+      if (RATINGS.includes(fb.rating)) totals[club][fb.rating]++;
+      const tags = Array.isArray(fb.tags) ? fb.tags : String(fb.tags || '').split(',').filter(Boolean);
+      tags.forEach(t => { totals[club].tags[t] = (totals[club].tags[t] || 0) + 1; });
     });
   });
   return totals;
@@ -56,8 +62,18 @@ function allHoles(rounds) {
 
 // ---------- BLOQUES ----------
 
-function heroHtml(hcp, form) {
+function heroHtml(hcp, form, estimate) {
   if (hcp.current === null) {
+    // Sin las 3 rondas del cálculo oficial: si hay estimación (amigos) se
+    // muestra igual, marcada con una advertencia.
+    if (estimate && estimate.value !== null) {
+      const warn = estimate.rounds === 1 ? 'Solo 1 ronda jugada' : `Estimado con ${estimate.rounds} rondas`;
+      return `<div class="hero-card">
+        <div class="hero-label">Handicap index</div>
+        <div class="hero-row"><div class="hero-val">~${estimate.value.toFixed(1)}</div></div>
+        <div class="hero-sub">⚠️ ${warn}${estimate.approx ? ' · la cancha no tiene rating, se usó el par' : ''}</div>
+      </div>`;
+    }
     return `<div class="hero-card">
       <div class="hero-label">Handicap index</div>
       <div class="hero-val">—</div>
@@ -68,7 +84,7 @@ function heroHtml(hcp, form) {
   // bajar es mejor, así que una baja va en verde.
   const chip = form.delta === null ? ''
     : `<span class="chip ${form.delta < 0 ? 'chip-good' : form.delta > 0 ? 'chip-bad' : ''}">
-        ${form.delta < 0 ? '▼' : form.delta > 0 ? '▲' : '='} ${Math.abs(form.delta).toFixed(1)} golpes
+        ${form.delta < 0 ? '▼' : form.delta > 0 ? '▲' : '='} ${Math.abs(form.delta).toFixed(1)} · últimas ${form.recentN}
        </span>`;
   return `<div class="hero-card">
     <div class="hero-label">Handicap index</div>
@@ -76,10 +92,7 @@ function heroHtml(hcp, form) {
       <div class="hero-val">${hcp.current.toFixed(1)}</div>
       ${chip}
     </div>
-    <div class="hero-sub">${hcp.rounds} rondas terminadas${
-      form.delta === null ? ''
-        : ` · últimas ${form.recentN} promedian ${formatDiff(Math.round(form.recent))} vs ${formatDiff(Math.round(form.previous))} antes`
-    }</div>
+    <div class="hero-sub">En ${hcp.rounds} ${hcp.rounds === 1 ? 'ronda' : 'rondas'}</div>
   </div>`;
 }
 
@@ -150,22 +163,60 @@ function parTypeHtml(rows) {
     <div class="panel-foot" style="padding:0 2px;">Donde más golpes perdés: <b>par ${worst.par}</b></div>`;
 }
 
-function coursesHtml(rows) {
-  if (!rows.length) return '';
-  const peor = Math.max(...rows.map(r => r.avgDiff));
-  return `<div class="section-title" style="margin-top:24px;">Por cancha</div>
+// "Por cancha" se puede mirar de cuatro formas: rondas de 18, rondas de 9, y
+// la mejor ida / mejor vuelta de las rondas de 18. Cada bloque (home, ficha de
+// amigo) guarda su contexto para poder redibujarse al cambiar de modo.
+const COURSE_MODES = [['18', '18 hoyos'], ['9', '9 hoyos'], ['front', 'Ida'], ['back', 'Vuelta']];
+const courseCtx = {};
+let courseMode = null;
+
+function courseRowsFor(mode, ctx) {
+  if (mode === '18') return byCourse(ctx.rounds, 18);
+  if (mode === '9') return byCourse(ctx.rounds, 9);
+  return byCourseNine(ctx.rounds, mode, ctx.holesOf);
+}
+
+function coursesHtml(scope) {
+  const ctx = courseCtx[scope];
+  const has18 = byCourse(ctx.rounds, 18).length > 0;
+  const has9 = byCourse(ctx.rounds, 9).length > 0;
+  if (!has18 && !has9) return '';
+  const mode = courseMode || (has18 ? '18' : '9');
+  const rows = courseRowsFor(mode, ctx);
+  const half = mode === 'front' || mode === 'back';
+  const peor = rows.length ? Math.max(...rows.map(r => (half ? r.bestDiff : r.avgDiff))) : 0;
+  const foot = half
+    ? `Tu mejor ${mode === 'front' ? 'ida (hoyos 1-9)' : 'vuelta (hoyos 10-18)'} en cada cancha, contra el par`
+    : `Promedio contra el par · rondas de ${mode} hoyos`;
+  return `<div id="courses-${scope}">
+    <div class="section-title" style="margin-top:24px;">Por cancha</div>
+    <div class="holes-count-toggle">
+      ${COURSE_MODES.map(([key, label]) => `<button type="button" class="holes-count-btn ${key === mode ? 'active' : ''}" onclick="setCourseMode('${scope}','${key}')">${label}</button>`).join('')}
+    </div>
     <div class="panel">
-      ${rows.map(r => `
-        <div class="course-row">
+      ${rows.length ? rows.map(r => {
+        const val = half ? r.bestDiff : r.avgDiff;
+        const sub = half
+          ? `mejor ${r.best} · prom. ${formatDiff(Math.round(r.avgDiff))} · ${r.played} ${r.played === 1 ? 'ronda' : 'rondas'}`
+          : `${r.played} ${r.played === 1 ? 'ronda' : 'rondas'} · mejor ${r.best} (${formatDiff(r.bestDiff)})`;
+        return `<div class="course-row">
           <div class="course-row-main">
-            <div class="course-row-name">${r.course}</div>
-            <div class="course-row-sub">${r.played} ${r.played === 1 ? 'ronda' : 'rondas'} · mejor ${r.best} (${formatDiff(r.bestDiff)})</div>
+            <div class="course-row-name">${attrText(r.course)}</div>
+            <div class="course-row-sub">${sub}</div>
           </div>
-          <div class="course-row-bar">${meter(peor ? (r.avgDiff / peor) * 100 : 0, { color: 'var(--green-dim)' })}</div>
-          <div class="course-row-val">${formatDiff(Math.round(r.avgDiff))}</div>
-        </div>`).join('')}
-      <div class="panel-foot">Promedio contra el par de cada cancha</div>
-    </div>`;
+          <div class="course-row-bar">${meter(peor > 0 ? (val / peor) * 100 : 0, { color: 'var(--green-dim)' })}</div>
+          <div class="course-row-val">${formatDiff(Math.round(val))}</div>
+        </div>`;
+      }).join('') : `<div class="panel-foot" style="text-align:center;margin:0;">Todavía no hay datos para esta vista.</div>`}
+      <div class="panel-foot">${foot}</div>
+    </div>
+  </div>`;
+}
+
+export function setCourseMode(scope, mode) {
+  courseMode = mode;
+  const el = document.getElementById('courses-' + scope);
+  if (el && courseCtx[scope]) el.outerHTML = coursesHtml(scope);
 }
 
 function shortGameHtml(sg) {
@@ -186,36 +237,65 @@ function shortGameHtml(sg) {
         <div class="stat-lbl">Penales</div>
         <div class="stat-note">${(sg.penalties / sg.holes * 18).toFixed(1)} por vuelta</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-val${sg.threePutts ? '' : ' green'}">${sg.threePutts}</div>
+        <div class="stat-lbl">3 putts</div>
+        <div class="stat-note">${(sg.threePutts / sg.holes * 18).toFixed(1)} por vuelta</div>
+      </div>
     </div>`;
 }
 
 // Bloque de estadísticas reutilizable: lo usa el home (con tus rondas) y la
 // ficha de cada amigo (con las rondas donde participó). `rounds` y `holes`
 // tienen que venir con la forma estándar (ver core/insights.js).
-export function renderInsightsSections(rounds, holes) {
+//   scope        identifica el bloque "Por cancha" (home / friend)
+//   holesOf      hoyos guardados de una ronda (para mejor ida / vuelta)
+//   estimateHcp  muestra un handicap estimado aunque falten rondas (amigos)
+export function renderInsightsSections(rounds, holes, { scope = 'home', holesOf = r => r._holes || [], estimateHcp = false } = {}) {
   if (!rounds.length) return '';
+  courseCtx[scope] = { rounds, holesOf };
   return [
-    heroHtml(handicapIndexNow(rounds), scoringForm(rounds)),
+    heroHtml(handicapIndexNow(rounds), scoringForm(rounds), estimateHcp ? provisionalHandicapIndex(rounds) : null),
     trendHtml(scoreTrend(rounds)),
     gameHtml(playAverages(holes)),
     scoringHtml(scoringDistribution(holes)),
     parTypeHtml(byParType(holes)),
-    coursesHtml(byCourse(rounds)),
+    coursesHtml(scope),
     shortGameHtml(shortGame(holes)),
   ].join('');
 }
 
 function clubsHtml() {
-  const clubStats = getAllClubStats();
-  const byGreen = Object.entries(clubStats).sort((a, b) => b[1].verde - a[1].verde);
-  const byRed = Object.entries(clubStats).sort((a, b) => b[1].rojo - a[1].rojo);
-  const topClub = byGreen[0]?.[1].verde > 0 ? byGreen[0] : null;
-  const badClub = byRed[0]?.[1].rojo > 0 ? byRed[0] : null;
-  if (!topClub && !badClub) return '';
+  const stats = getAllClubStats();
+  const rows = Object.entries(stats)
+    .map(([club, s]) => ({ club, ...s, rated: s.verde + s.amarillo + s.rojo }))
+    .filter(r => r.rated > 0);
+  if (!rows.length) return '';
+
+  const share = (r, key) => r[key] / r.rated;
+  const best = [...rows].sort((a, b) => b.verde - a.verde || share(b, 'verde') - share(a, 'verde'))[0];
+  const worst = [...rows].sort((a, b) => b.rojo - a.rojo || share(b, 'rojo') - share(a, 'rojo'))[0];
+  const rondas = n => `${n} ${n === 1 ? 'ronda' : 'rondas'}`;
+  const topTag = r => Object.entries(r.tags).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const tagNote = r => topTag(r) ? `<div class="stat-note">Suele ser: ${attrText(topTag(r))}</div>` : '';
+
+  const ranked = [...rows].sort((a, b) => b.rated - a.rated || a.club.localeCompare(b.club));
   return `<div class="section-title" style="margin-top:24px;">Palos</div>
     <div class="row-2">
-      ${topClub ? `<div class="stat-card"><div class="stat-tag green">Mejor</div><div class="stat-name">${topClub[0]}</div><div class="stat-note">${topClub[1].verde} rondas en verde</div></div>` : ''}
-      ${badClub ? `<div class="stat-card"><div class="stat-tag red">A trabajar</div><div class="stat-name">${badClub[0]}</div><div class="stat-note">${badClub[1].rojo} rondas en rojo</div></div>` : ''}
+      ${best.verde > 0 ? `<div class="stat-card"><div class="stat-tag green">Mejor</div><div class="stat-name">${attrText(best.club)}</div><div class="stat-note">En verde ${best.verde} de ${rondas(best.rated)}</div>${tagNote(best)}</div>` : ''}
+      ${worst.rojo > 0 ? `<div class="stat-card"><div class="stat-tag red">A trabajar</div><div class="stat-name">${attrText(worst.club)}</div><div class="stat-note">En rojo ${worst.rojo} de ${rondas(worst.rated)}</div>${tagNote(worst)}</div>` : ''}
+    </div>
+    <div class="panel" style="margin-top:10px;">
+      ${ranked.map(r => `<div class="club-stat-row">
+        <span class="club-stat-name">${attrText(r.club)}</span>
+        <div class="club-stat-bar">${stackedBar([
+          { label: 'Verde', value: r.verde, color: 'var(--green)' },
+          { label: 'Amarillo', value: r.amarillo, color: 'var(--yellow)' },
+          { label: 'Rojo', value: r.rojo, color: 'var(--red)' },
+        ])}</div>
+        <span class="club-stat-n">${r.rated}</span>
+      </div>`).join('')}
+      <div class="panel-foot">Tu semáforo por palo al terminar cada ronda · número = rondas calificadas</div>
     </div>`;
 }
 
@@ -232,7 +312,10 @@ export function renderHome() {
       ? `<div class="panel"><div class="panel-foot" style="text-align:center;">Terminá una ronda para empezar a ver tus números.</div></div>`
       : '';
   } else {
-    statsEl.innerHTML = renderInsightsSections(rounds, allHoles(done)) + clubsHtml();
+    statsEl.innerHTML = renderInsightsSections(rounds, allHoles(done), {
+      scope: 'home',
+      holesOf: r => Object.values(app.store.loadHoles(r.round_id)),
+    }) + clubsHtml();
   }
 
   const container = document.getElementById('recent-rounds');

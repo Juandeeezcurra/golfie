@@ -30,7 +30,7 @@ export function renderFriendsList() {
       <div class="friend-avatar">${attrText((f.name || '?').trim().slice(0, 1).toUpperCase())}</div>
       <div class="friend-main">
         <div class="friend-name">${attrText(f.name)}</div>
-        <div class="friend-sub">${played} ${played === 1 ? 'ronda' : 'rondas'} con vos${hcp.value !== null ? ' · HCP ' + (hcp.provisional ? '~' : '') + hcp.value.toFixed(1) : ''}</div>
+        <div class="friend-sub">${played} ${played === 1 ? 'ronda' : 'rondas'} con vos${hcp.value !== null ? ' · HCP ' + (hcp.provisional ? '~' : '') + hcp.value.toFixed(1) + (hcp.provisional ? ' ⚠️' : '') : ''}</div>
       </div>
       <div class="friend-chevron">›</div>
     </div>`;
@@ -105,11 +105,11 @@ function friendRoundCardHTML(r) {
   return `<div class="round-card" onclick="viewFriendRound('${jsStr(r.round_id)}')">
     <div class="round-card-left">
       <div class="course">${attrText(r.course_name || '—')}</div>
-      <div class="date">${formatDate(r.date)}</div>
+      <div class="date">${formatDate(r.date)}${r.holes_played ? ` · ${r.holes_played} ${r.holes_played === 1 ? 'hoyo' : 'hoyos'}` : ''}</div>
     </div>
-    <div class="round-card-right" style="display:flex;align-items:center;gap:12px;">
+    <div class="round-card-right">
       ${hasTotal && r.completed
-        ? `<div style="display:flex;align-items:baseline;gap:5px;"><div class="score-big">${r.total_score}</div><div class="score-label">${formatDiff(diff)}</div></div>`
+        ? `<div class="score-cell"><div class="score-big">${r.total_score}</div><div class="score-label">${formatDiff(diff)}</div></div>`
         : `<span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">En curso</span>`}
     </div>
   </div>`;
@@ -120,13 +120,15 @@ export function renderFriendDetailScreen() {
   if (!friend) { goTo('friends'); return; }
 
   document.getElementById('friend-detail-name').textContent = friend.name;
-  document.getElementById('friend-detail-hcp').textContent =
-    friend.handicap_index != null && friend.handicap_index !== '' ? 'HCP ' + Number(friend.handicap_index).toFixed(1) : 'Sin handicap cargado';
-
   const rounds = friendRounds(viewedFriendId);
   const done = rounds.filter(r => r.completed);
   const holes = done.flatMap(r => r._holes);
   const suggested = provisionalHandicapIndex(rounds);
+
+  document.getElementById('friend-detail-hcp').textContent =
+    friend.handicap_index != null && friend.handicap_index !== '' ? 'HCP ' + Number(friend.handicap_index).toFixed(1)
+    : suggested.value !== null ? `HCP ${suggested.provisional ? '~' : ''}${suggested.value.toFixed(1)}${suggested.provisional ? ' ⚠️ estimado' : ''}`
+    : 'Sin handicap cargado';
 
   const suggestEl = document.getElementById('friend-suggested-hcp');
   const current = friend.handicap_index != null && friend.handicap_index !== '' ? Number(friend.handicap_index) : null;
@@ -136,14 +138,14 @@ export function renderFriendDetailScreen() {
         <div>
           <div class="suggested-hcp-label">${suggested.provisional ? 'Handicap estimado (recién arrancando)' : 'Handicap sugerido por sus últimas rondas'}</div>
           <div class="suggested-hcp-val">${suggested.provisional ? '~' : ''}${suggested.value.toFixed(1)}</div>
-          ${suggested.provisional ? `<div class="suggested-hcp-note">Con ${suggested.rounds} ${suggested.rounds === 1 ? 'ronda' : 'rondas'} es sólo una estimación — mejor esperar a tener 3 tarjetas para un número más confiable.</div>` : ''}
+          ${suggested.provisional ? `<div class="suggested-hcp-note">Con ${suggested.rounds} ${suggested.rounds === 1 ? 'ronda' : 'rondas'} es sólo una estimación — mejor esperar a tener 3 tarjetas para un número más confiable.${suggested.approx ? ' La cancha no tiene rating cargado, así que se calculó contra el par.' : ''}</div>` : ''}
         </div>
         <button type="button" class="secondary-btn" style="margin:0;width:auto;padding:10px 16px;flex-shrink:0;" onclick="applySuggestedHandicap('${jsStr(friend.player_id)}', ${suggested.value})">Usar este</button>
       </div>`);
   }
 
   const statsEl = document.getElementById('friend-stats');
-  if (statsEl) statsEl.innerHTML = renderInsightsSections(rounds, holes);
+  if (statsEl) statsEl.innerHTML = renderInsightsSections(rounds, holes, { scope: 'friend', estimateHcp: true });
 
   const listEl = document.getElementById('friend-rounds-list');
   if (listEl) {

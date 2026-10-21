@@ -30,9 +30,13 @@ body {
 .logo-sub { font-size: 12px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
 
 /* HOME */
-#home { padding: 40px 20px 40px; }
+#home { padding: 0 20px 40px; }
+/* Cabecera del home: baja lo suficiente para no quedar bajo la barra de estado
+   (borrosa en iOS) ni cortada por el notch. */
+.home-head { padding: max(80px, calc(env(safe-area-inset-top, 0px) + 28px)) 24px 0; }
 .home-header { margin-bottom: 48px; }
 .recent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+#recent-rounds { display: flex; flex-direction: column; gap: 10px; }
 
 /* FORM SCREENS */
 .form-screen { padding: 20px; flex: 1; }

@@ -10,8 +10,8 @@ import { createStore } from './store.js';
 import { createSync } from './sync.js';
 import { goTo, switchTab, onEnter } from './ui/router.js';
 import { showToast } from './ui/toast.js';
-import { renderHome, renderUserCode, showUserCode, showSettings } from './ui/home.js';
-import { renderHistory, deleteRound } from './ui/history.js';
+import { renderHome, renderUserCode, showUserCode, showSettings, setCourseMode } from './ui/home.js';
+import { renderHistory, deleteRound, deleteCurrentRound } from './ui/history.js';
 import { loadCoursesIntoState, prefillHcp, filterCourses, selectTee, pickCatalogCourse, pickFreeCourse, startRound, initSetup, renderRoundPlayers, toggleRoundPlayer, toggleScrambleTeam, addFriend } from './ui/setup.js';
 import { renderCourseFormHoles, saveNewCourse } from './ui/course-form.js';
 import { loadCatalog } from './catalog.js';
@@ -56,8 +56,8 @@ onEnter('friend-detail', renderFriendDetailScreen);
 // globales. Es el puente entre el HTML y los módulos.
 Object.assign(window, {
   goTo, switchTab,
-  renderHome, showUserCode, showSettings,
-  renderHistory, deleteRound,
+  renderHome, showUserCode, showSettings, setCourseMode,
+  renderHistory, deleteRound, deleteCurrentRound,
   filterCourses, selectTee, pickCatalogCourse, pickFreeCourse, startRound,
   renderRoundPlayers, toggleRoundPlayer, toggleScrambleTeam, addFriend,
   renderCourseFormHoles, saveNewCourse,

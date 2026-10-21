@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   completedRounds, scoreTrend, scoringDistribution, byParType,
-  byCourse, handicapIndexNow, scoringForm, shortGame, playAverages,
+  byCourse, byCourseNine, handicapIndexNow, provisionalHandicapIndex, scoringForm, shortGame, playAverages,
 } from '../../public/js/core/insights.js';
 
 const round = (date, course, score, par = 72, extra = {}) => ({
@@ -116,4 +116,59 @@ test('sin hoyos, los promedios no explotan', () => {
   assert.equal(playAverages([]), null);
   assert.equal(scoringDistribution([]).total, 0);
   assert.deepEqual(byParType([]), []);
+});
+
+test('por cancha separa rondas de 9 y de 18 hoyos', () => {
+  const rounds = [
+    round('2026-01-01', 'Boulogne', 44, 35, { course_holes_count: 9 }),
+    round('2026-02-01', 'Newman', 90),
+    round('2026-03-01', 'Boulogne', 46, 35, { course_holes_count: 9 }),
+  ];
+  assert.deepEqual(byCourse(rounds, 18).map(c => c.course), ['Newman']);
+  const [bou] = byCourse(rounds, 9);
+  assert.equal(bou.played, 2);
+  assert.equal(bou.avgDiff, 10);
+});
+
+test('mejor ida y mejor vuelta se miden por mitad, sólo en rondas de 18', () => {
+  const nine = (from, score) => Array.from({ length: 9 }, (_, i) => ({ hole_number: from + i, par: 4, score }));
+  const r1 = round('2026-01-01', 'Newman', 90, 72, { round_id: 'a' });
+  const r2 = round('2026-02-01', 'Newman', 80, 72, { round_id: 'b' });
+  const holes = { a: [...nine(1, 5), ...nine(10, 5)], b: [...nine(1, 4), ...nine(10, 5)] };
+  const holesOf = r => holes[r.round_id];
+  const [front] = byCourseNine([r1, r2], 'front', holesOf);
+  assert.equal(front.best, 36);
+  assert.equal(front.bestDiff, 0);
+  assert.equal(front.avgDiff, 4.5);
+  const [back] = byCourseNine([r1, r2], 'back', holesOf);
+  assert.equal(back.best, 45);
+  assert.equal(back.played, 2);
+  // media vuelta incompleta no cuenta
+  assert.deepEqual(byCourseNine([r1], 'back', () => nine(10, 5).slice(0, 8)), []);
+});
+
+test('handicap provisorio: una sola ronda ya da una estimación', () => {
+  const h = provisionalHandicapIndex([round('2026-01-01', 'X', 90, 72, { slope_rating: 113, course_rating: 72 })]);
+  assert.equal(h.value, 18);
+  assert.equal(h.provisional, true);
+  assert.equal(h.rounds, 1);
+  assert.equal(h.approx, false);
+});
+
+test('handicap provisorio: cancha de 9 sin rating usa el par y duplica', () => {
+  const r = round('2026-01-01', 'Boulogne', 44, 35, { course_holes_count: 9, slope_rating: '', course_rating: '' });
+  const h = provisionalHandicapIndex([r]);
+  assert.equal(h.value, 18, '(44 - 35) * 2');
+  assert.equal(h.approx, true);
+});
+
+test('con 3 o más rondas el provisorio es el índice real', () => {
+  const rounds = [90, 91, 92].map((s, i) => round('2026-01-0' + (i + 1), 'X', s));
+  const h = provisionalHandicapIndex(rounds);
+  assert.equal(h.provisional, false);
+});
+
+test('3 putts se cuentan en el juego corto', () => {
+  const sg = shortGame([hole(4, 5, { putts: 3 }), hole(4, 4, { putts: 2 }), hole(3, 5, { putts: 4 }), hole(4, 4, { putts: '' })]);
+  assert.equal(sg.threePutts, 2);
 });

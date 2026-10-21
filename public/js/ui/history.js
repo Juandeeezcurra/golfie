@@ -1,6 +1,8 @@
 import { app } from '../context.js';
+import { state } from '../state.js';
 import { roundCardHTML, renderHome } from './home.js';
 import { showModal } from './modal.js';
+import { switchTab } from './router.js';
 
 export function renderHistory() {
   const rounds = app.store.loadRounds();
@@ -12,7 +14,11 @@ export function renderHistory() {
     return;
   }
   sub.textContent = rounds.length + (rounds.length === 1 ? ' ronda' : ' rondas');
-  container.innerHTML = rounds.map(r => roundCardHTML(r, true)).join('');
+  container.innerHTML = rounds.map(r => roundCardHTML(r)).join('');
+}
+
+export function deleteCurrentRound() {
+  if (state.currentRound) deleteRound(state.currentRound.round_id);
 }
 
 export function deleteRound(round_id) {
@@ -26,8 +32,9 @@ export function deleteRound(round_id) {
       app.store.removeRoundData(round_id);
       // Sin esto el borrado era sólo local y el próximo sync la traía de vuelta.
       app.sync.postToSheets('deleteRound', { round_id });
-      renderHistory();
       renderHome();
+      // Se borra desde la tarjeta de la ronda; al terminar se vuelve al historial.
+      switchTab('history');
     },
   });
 }

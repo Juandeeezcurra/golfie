@@ -57,9 +57,11 @@ export function byParType(holes) {
 }
 
 // Resumen por cancha: cuántas veces jugaste, tu mejor score y el promedio.
-export function byCourse(rounds) {
+// Se separa por cantidad de hoyos: comparar un 9 contra un 18 contra el par
+// no tiene sentido, así que cada llamada mira sólo rondas de `holesCount`.
+export function byCourse(rounds, holesCount = 18) {
   const acc = {};
-  completedRounds(rounds).forEach(r => {
+  completedRounds(rounds).filter(r => (Number(r.course_holes_count) || 18) === holesCount).forEach(r => {
     const name = r.course_name || '—';
     const diff = r.total_score - r.par_total;
     const c = acc[name] = acc[name] || { course: name, played: 0, best: null, bestDiff: Infinity, sumDiff: 0 };
@@ -70,6 +72,28 @@ export function byCourse(rounds) {
   return Object.values(acc)
     .map(c => ({ course: c.course, played: c.played, best: c.best, bestDiff: c.bestDiff, avgDiff: c.sumDiff / c.played }))
     .sort((a, b) => b.played - a.played || a.avgDiff - b.avgDiff);
+}
+
+// Mejor ida / mejor vuelta por cancha: en rondas de 18 hoyos, cada mitad se
+// mide por separado contra su propio par. `holesOf(round)` devuelve los hoyos
+// guardados de esa ronda; sólo cuenta una mitad si están los 9 hoyos.
+export function byCourseNine(rounds, half, holesOf) {
+  const [from, to] = half === 'back' ? [10, 18] : [1, 9];
+  const acc = {};
+  completedRounds(rounds).filter(r => (Number(r.course_holes_count) || 18) === 18).forEach(r => {
+    const nine = (holesOf(r) || []).filter(h => h && Number(h.hole_number) >= from && Number(h.hole_number) <= to && Number(h.score));
+    if (nine.length !== 9) return;
+    const score = nine.reduce((a, h) => a + Number(h.score), 0);
+    const diff = score - nine.reduce((a, h) => a + Number(h.par), 0);
+    const name = r.course_name || '—';
+    const c = acc[name] = acc[name] || { course: name, played: 0, best: null, bestDiff: Infinity, sumDiff: 0 };
+    c.played++;
+    c.sumDiff += diff;
+    if (diff < c.bestDiff) { c.bestDiff = diff; c.best = score; }
+  });
+  return Object.values(acc)
+    .map(c => ({ course: c.course, played: c.played, best: c.best, bestDiff: c.bestDiff, avgDiff: c.sumDiff / c.played }))
+    .sort((a, b) => a.bestDiff - b.bestDiff || b.played - a.played);
 }
 
 // Handicap index actual. A propósito NO devuelve una comparación contra el
@@ -83,6 +107,20 @@ export function handicapIndexNow(rounds) {
   return { current: current === null ? null : Number(current), rounds: done.length };
 }
 
+// Diferencial estimado de una ronda para el índice provisorio. Con rating y
+// slope de la cancha es el diferencial normal; una vuelta de 9 se duplica
+// para llevarla a escala de 18. Si la cancha no tiene rating cargado (ej.
+// Boulogne), se asume rating = par y slope 113, y se marca como `approx`.
+function estimatedDifferential(r) {
+  const holes = Number(r.course_holes_count) || 18;
+  if (holes < 9 || holes > 18) return null;
+  const scale = 18 / holes;
+  if (r.slope_rating && r.course_rating && (holes === 18 || holes === 9)) {
+    return { diff: differential(r.total_score, r.course_rating, r.slope_rating) * scale, approx: false };
+  }
+  return { diff: (r.total_score - r.par_total) * scale, approx: true };
+}
+
 // Versión "provisoria" para cuando todavía no hay las 3 rondas que pide el
 // cálculo oficial (calcHandicapIndex): promedia los diferenciales que haya,
 // sin la tabla de ajuste WHS (que requiere al menos 3). Se usa para mostrar
@@ -90,16 +128,18 @@ export function handicapIndexNow(rounds) {
 // siempre dejando en claro que es una estimación, no el índice real.
 export function provisionalHandicapIndex(rounds) {
   const real = handicapIndexNow(rounds);
-  if (real.current !== null) return { value: real.current, provisional: false, rounds: real.rounds };
+  if (real.current !== null) return { value: real.current, provisional: false, approx: false, rounds: real.rounds };
 
-  const eligible = completedRounds(rounds)
-    .filter(r => (Number(r.course_holes_count) || 18) === 18 && r.total_score && r.slope_rating && r.course_rating)
-    .slice(0, 20);
-  if (!eligible.length) return { value: null, provisional: false, rounds: 0 };
+  const estimates = completedRounds(rounds).slice(0, 20).map(estimatedDifferential).filter(Boolean);
+  if (!estimates.length) return { value: null, provisional: false, approx: false, rounds: 0 };
 
-  const diffs = eligible.map(r => differential(r.total_score, r.course_rating, r.slope_rating));
-  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-  return { value: Number(Math.max(-10, avg).toFixed(1)), provisional: true, rounds: eligible.length };
+  const avg = estimates.reduce((a, e) => a + e.diff, 0) / estimates.length;
+  return {
+    value: Number(Math.max(-10, avg).toFixed(1)),
+    provisional: true,
+    approx: estimates.some(e => e.approx),
+    rounds: estimates.length,
+  };
 }
 
 // Forma reciente: promedio contra el par de las últimas `window` rondas vs
@@ -130,6 +170,7 @@ export function shortGame(holes) {
     penalties: list.reduce((a, h) => a + (Number(h.penalties) || 0), 0),
     upDowns,
     sandSaves: list.filter(h => h.sand_save === true).length,
+    threePutts: list.filter(h => h.putts !== '' && h.putts !== null && Number(h.putts) >= 3).length,
     holes: list.length,
     missedGreens,
     scramblingPct: missedGreens ? Math.round(upDowns / missedGreens * 100) : null,
