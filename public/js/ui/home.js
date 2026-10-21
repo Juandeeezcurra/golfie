@@ -343,11 +343,21 @@ export function showSettings() {
       </div>
       <div class="settings-row" onclick="showRepair()">
         <span>Reparar datos</span><span class="settings-row-arrow">›</span>
-      </div>`,
+      </div>
+      <div id="app-version" class="settings-version"></div>`,
     confirmText: 'CERRAR',
     safe: true,
     onConfirm: () => {},
   });
+  // La versión sale del caché del service worker: sirve para confirmar que el
+  // teléfono ya tiene la última.
+  if (window.caches) {
+    caches.keys().then(keys => {
+      const v = keys.find(k => k.startsWith('golfie-'));
+      const el = document.getElementById('app-version');
+      if (el && v) el.textContent = 'Versión ' + v.replace('golfie-', '');
+    }).catch(() => {});
+  }
 }
 
 export function showUserCode() {

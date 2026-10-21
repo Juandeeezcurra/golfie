@@ -177,7 +177,7 @@ export function renderDashboard(round, meHoles) {
       </div>`).join('')}</div>` : ''}
 
     <div class="section-title">Tarjeta</div>
-    <div class="form-hint" style="margin:-4px 0 0;">Tocá un hoyo para corregirlo.</div>
+    <div class="edit-hint">✎ Tocá cualquier hoyo para editarlo</div>
     <div class="scorecard-totals">
       <div class="scorecard-total-card">
         <div class="stc-val">${card.front.holes.length ? card.front.score : '—'}</div>
@@ -226,6 +226,7 @@ export function renderDashboard(round, meHoles) {
     ` : ''}
 
     <button class="cta-btn" style="margin-top:32px;" onclick="goTo('new-round')">+ Nueva Ronda</button>
+    <button class="secondary-btn" style="margin-top:10px;" onclick="shareRoundImage()">Compartir imagen</button>
     <button class="secondary-btn" style="margin-top:10px;" onclick="exportRoundCSV('${jsStr(round.round_id)}')">Descargar tarjeta CSV</button>
     <button class="secondary-btn" style="margin-top:10px;" onclick="switchTab('history')">Ver historial</button>
     <button class="danger-btn" onclick="deleteRound('${jsStr(round.round_id)}')">Eliminar ronda</button>

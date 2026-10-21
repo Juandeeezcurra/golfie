@@ -18,6 +18,7 @@ import { loadCatalog } from './catalog.js';
 import { setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort, toggleScoreVisibility } from './ui/tracker.js';
 import { initClubFeedback, setSemaforo, toggleTag, finishRound, renderClubFeedbackUI, editClubs, clubBack } from './ui/clubs.js';
 import { viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole } from './ui/dashboard.js';
+import { shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage } from './ui/share.js';
 import {
   renderPending, renderCleanup, renderHold, renderStatusLines,
   showRepair, showCleanup, showHold, clearQueue,
@@ -66,6 +67,7 @@ Object.assign(window, {
   toggleScoreVisibility,
   initClubFeedback, setSemaforo, toggleTag, finishRound, editClubs, clubBack,
   viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole,
+  shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage,
   showRepair, showCleanup, showHold, clearQueue,
   renderFriendsList, showAddFriend, viewFriend, editCurrentFriend, viewFriendRound, applySuggestedHandicap,
   renderPending, renderCleanup, renderHold,
