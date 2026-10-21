@@ -17,15 +17,25 @@ export function completedRounds(rounds) {
 }
 
 // Últimas rondas en orden cronológico (la más vieja primero), para graficar.
+// Cada ronda se lleva a escala de 18 hoyos: una vuelta de 9 tiene la mitad de
+// golpes de más sobre el par, así que sin ajustar siempre se vería "mejor".
+// Se incluyen desde 6 hoyos; con menos el ajuste amplifica demasiado el azar.
+export const TREND_MIN_HOLES = 6;
+
 export function scoreTrend(rounds, limit = 10) {
   return completedRounds(rounds)
+    .filter(r => (Number(r.course_holes_count) || 18) >= TREND_MIN_HOLES)
     .slice(0, limit)
-    .map(r => ({
-      date: r.date,
-      course: r.course_name || '—',
-      score: r.total_score,
-      diff: r.total_score - r.par_total,
-    }))
+    .map(r => {
+      const holes = Number(r.course_holes_count) || 18;
+      return {
+        date: r.date,
+        course: r.course_name || '—',
+        score: r.total_score,
+        holes,
+        diff: Math.round((r.total_score - r.par_total) * 18 / holes),
+      };
+    })
     .reverse();
 }
 

@@ -212,3 +212,17 @@ test('por cancha agrupa por largo: de 10 a 18 hoyos y de 1 a 9, sin perder las r
   assert.equal(byCourse(rounds, 18)[0].played, 2, '14 y 18 hoyos');
   assert.equal(byCourse(rounds, 9)[0].played, 2, '6 y 9 hoyos');
 });
+
+test('la tendencia lleva las rondas cortas a escala de 18 hoyos', () => {
+  const rounds = [
+    round('2026-05-01', 'Muy corta', 12, 8, { course_holes_count: 2 }),   // menos de 6: no entra
+    round('2026-04-01', 'Jockey', 44, 36, { course_holes_count: 9 }),      // +8 en 9 = +16 a 18
+    round('2026-03-01', 'Olivos', 95),                                      // +23
+    round('2026-02-01', 'Corta', 30, 24, { course_holes_count: 6 }),       // +6 en 6 = +18 a 18
+  ];
+  const t = scoreTrend(rounds);
+  assert.deepEqual(t.map(p => p.course), ['Corta', 'Olivos', 'Jockey']);
+  assert.deepEqual(t.map(p => p.diff), [18, 23, 16]);
+  assert.equal(t[2].score, 44, 'el score que se muestra es el real');
+  assert.equal(t[2].holes, 9);
+});

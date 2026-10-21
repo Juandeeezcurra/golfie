@@ -98,15 +98,17 @@ function heroHtml(hcp, form, estimate) {
 
 function trendHtml(trend) {
   if (trend.length < 2) return '';
-  const best = trend.reduce((a, b) => (b.diff < a.diff ? b : a));
   const last = trend[trend.length - 1];
+  const adjusted = trend.some(p => p.holes !== 18);
   return `<div class="section-title" style="margin-top:24px;">Tendencia</div>
     <div class="panel">
       ${sparkline(trend)}
       <div class="trend-foot">
-        <span>Mejor: <b>${best.score}</b> ${formatDiff(best.diff)} · ${best.course}</span>
-        <span>Última: <b>${last.score}</b> ${formatDiff(last.diff)}</span>
+        <span>${last.holes === 18
+          ? `Última: <b>${last.score}</b> ${formatDiff(last.diff)} · ${attrText(last.course)}`
+          : `Última: <b>${last.score}</b> en ${last.holes} hoyos (≈ ${formatDiff(last.diff)} a 18) · ${attrText(last.course)}`}</span>
       </div>
+      <div class="panel-foot">Normalizado a 18 hoyos${adjusted ? ': las rondas más cortas se llevan a esa escala' : ''}</div>
     </div>`;
 }
 
