@@ -183,3 +183,32 @@ test('búnkers: cuenta los marcados y los sand saves de rondas viejas', () => {
   assert.equal(sg.bunkers, 3);
   assert.equal(sg.sandSaves, 2);
 });
+
+test('rondas pasadas a mano: lo que no se cargó no cuenta como cero', () => {
+  const sinDatos = [{ par: 4, score: 5 }, { par: 3, score: 4 }, { par: 5, score: 6, putts: '', green_in_regulation: '' }];
+  const avg = playAverages(sinDatos);
+  assert.equal(avg.putts, null, 'sin putts cargados no hay promedio');
+  assert.equal(avg.girPct, null, 'sin GIR cargado no hay porcentaje');
+  const sg = shortGame(sinDatos);
+  assert.equal(sg.missedGreens, 0);
+  assert.equal(sg.scramblingPct, null);
+  assert.equal(sg.threePutts, 0);
+});
+
+test('mezclar hoyos con y sin datos usa sólo los que tienen dato', () => {
+  const mezcla = [hole(4, 4, { putts: 3, green_in_regulation: true }), { par: 4, score: 5 }];
+  const avg = playAverages(mezcla);
+  assert.equal(avg.putts, 3);
+  assert.equal(avg.girPct, 100);
+});
+
+test('por cancha agrupa por largo: de 10 a 18 hoyos y de 1 a 9, sin perder las rondas de 6 o 14', () => {
+  const rounds = [
+    round('2026-01-01', 'Olivos', 80, 66, { course_holes_count: 14 }),
+    round('2026-02-01', 'Olivos', 90),
+    round('2026-03-01', 'Olivos', 30, 24, { course_holes_count: 6 }),
+    round('2026-04-01', 'Olivos', 44, 35, { course_holes_count: 9 }),
+  ];
+  assert.equal(byCourse(rounds, 18)[0].played, 2, '14 y 18 hoyos');
+  assert.equal(byCourse(rounds, 9)[0].played, 2, '6 y 9 hoyos');
+});

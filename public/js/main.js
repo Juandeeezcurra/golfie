@@ -23,6 +23,7 @@ import {
   runSearch, sendRequest, answerRequest, removeConnection, viewSocialFriend, removeSocialFriend, viewSocialRound,
   pickProfilePhoto, clearProfilePhoto,
 } from './ui/social.js';
+import { initPastRound, pastCourseChanged, cyclePastPar, pastScoreInput, savePastRound } from './ui/past-round.js';
 import { shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage } from './ui/share.js';
 import {
   renderPending, renderCleanup, renderHold, renderStatusLines,
@@ -54,6 +55,7 @@ onEnter('home', renderHome);
 onEnter('history', renderHistory);
 onEnter('new-round', () => { loadCoursesIntoState(); prefillHcp(); renderRoundPlayers(); });
 onEnter('new-course', renderCourseFormHoles);
+onEnter('past-round', initPastRound);
 onEnter('friends', renderFriendsList);
 onEnter('friends', renderSocialBlock);
 onEnter('social-profile', renderSocialProfile);
@@ -76,6 +78,7 @@ Object.assign(window, {
   viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole,
   showProfileForm, dropProfile, showSearchFriends, runSearch, sendRequest, answerRequest, removeConnection,
   viewSocialFriend, removeSocialFriend, viewSocialRound, pickProfilePhoto, clearProfilePhoto,
+  pastCourseChanged, cyclePastPar, pastScoreInput, savePastRound,
   shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage,
   showRepair, showCleanup, showHold, clearQueue,
   renderFriendsList, showAddFriend, viewFriend, editCurrentFriend, viewFriendRound, applySuggestedHandicap,

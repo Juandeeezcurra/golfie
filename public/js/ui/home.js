@@ -120,7 +120,7 @@ function gameHtml(avg, third) {
   return `<div class="section-title" style="margin-top:24px;">${third ? 'Su juego' : 'Tu juego'}</div>
     <div class="panel">
       ${row('Fairways', avg.fairwayPct === null ? '—' : avg.fairwayPct + '%', avg.fairwayPct, 'var(--green)')}
-      ${row('Greens en regulación', avg.girPct + '%', avg.girPct, 'var(--yellow)')}
+      ${row('Greens en regulación', avg.girPct === null ? '—' : avg.girPct + '%', avg.girPct, 'var(--yellow)')}
       ${row('Putts por hoyo', avg.putts === null ? '—' : avg.putts.toFixed(2), avg.putts === null ? null : Math.max(0, (3 - avg.putts) / 1.5 * 100), '#60a5fa')}
       <div class="panel-foot">Sobre ${avg.holes} hoyos jugados</div>
     </div>`;
@@ -166,7 +166,7 @@ function parTypeHtml(rows, third) {
 // "Por cancha" se puede mirar de cuatro formas: rondas de 18, rondas de 9, y
 // la mejor ida / mejor vuelta de las rondas de 18. Cada bloque (home, ficha de
 // amigo) guarda su contexto para poder redibujarse al cambiar de modo.
-const COURSE_MODES = [['18', '18 hoyos'], ['9', '9 hoyos'], ['front', 'Ida'], ['back', 'Vuelta']];
+const COURSE_MODES = [['18', '10-18'], ['9', '1-9'], ['front', 'Ida'], ['back', 'Vuelta']];
 const courseCtx = {};
 let courseMode = null;
 
@@ -187,7 +187,7 @@ function coursesHtml(scope) {
   const peor = rows.length ? Math.max(...rows.map(r => (half ? r.bestDiff : r.avgDiff))) : 0;
   const foot = half
     ? `Tu mejor ${mode === 'front' ? 'ida (hoyos 1-9)' : 'vuelta (hoyos 10-18)'} en cada cancha, contra el par`
-    : `Promedio contra el par · rondas de ${mode} hoyos`;
+    : `Promedio contra el par · rondas de ${mode === '18' ? '10 a 18' : '1 a 9'} hoyos`;
   return `<div id="courses-${scope}">
     <div class="section-title" style="margin-top:24px;">Por cancha</div>
     <div class="holes-count-toggle">

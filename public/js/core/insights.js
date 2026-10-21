@@ -8,7 +8,7 @@
 // siempre y nunca mostraba (penales, up & down, sand saves).
 // ============================================================
 
-import { holeClass } from './stats.js';
+import { holeClass, isKnown } from './stats.js';
 import { calcHandicapIndex, differential } from './handicap.js';
 
 // Una ronda cuenta para estadísticas si está terminada y tiene score y par.
@@ -57,11 +57,17 @@ export function byParType(holes) {
 }
 
 // Resumen por cancha: cuántas veces jugaste, tu mejor score y el promedio.
-// Se separa por cantidad de hoyos: comparar un 9 contra un 18 contra el par
-// no tiene sentido, así que cada llamada mira sólo rondas de `holesCount`.
+// Se separa por largo: una ronda corta (1 a 9 hoyos) no se mezcla con una de
+// más de 9. Como se puede jugar cualquier cantidad (6, 14…), 18 agrupa de 10 a
+// 18 hoyos y 9 agrupa de 1 a 9. El promedio es contra el par de los hoyos
+// jugados, así que sigue siendo comparable.
 export function byCourse(rounds, holesCount = 18) {
   const acc = {};
-  completedRounds(rounds).filter(r => (Number(r.course_holes_count) || 18) === holesCount).forEach(r => {
+  const inBand = r => {
+    const n = Number(r.course_holes_count) || 18;
+    return holesCount === 9 ? n <= 9 : n > 9;
+  };
+  completedRounds(rounds).filter(inBand).forEach(r => {
     const name = r.course_name || '—';
     const diff = r.total_score - r.par_total;
     const c = acc[name] = acc[name] || { course: name, played: 0, best: null, bestDiff: Infinity, sumDiff: 0 };
@@ -80,7 +86,7 @@ export function byCourse(rounds, holesCount = 18) {
 export function byCourseNine(rounds, half, holesOf) {
   const [from, to] = half === 'back' ? [10, 18] : [1, 9];
   const acc = {};
-  completedRounds(rounds).filter(r => (Number(r.course_holes_count) || 18) === 18).forEach(r => {
+  completedRounds(rounds).filter(r => (Number(r.course_holes_count) || 18) > 9).forEach(r => {
     const nine = (holesOf(r) || []).filter(h => h && Number(h.hole_number) >= from && Number(h.hole_number) <= to && Number(h.score));
     if (nine.length !== 9) return;
     const score = nine.reduce((a, h) => a + Number(h.score), 0);
@@ -164,7 +170,8 @@ export function scoringForm(rounds, window = 5) {
 // denominador equivocado el número queda artificialmente bajo.
 export function shortGame(holes) {
   const list = (holes || []).filter(Boolean);
-  const missedGreens = list.filter(h => h.green_in_regulation !== true).length;
+  // Sólo cuentan los greens con dato: en una ronda sin GIR cargado no hay "errados".
+  const missedGreens = list.filter(h => h.green_in_regulation === false).length;
   const upDowns = list.filter(h => h.up_and_down === true).length;
   return {
     penalties: list.reduce((a, h) => a + (Number(h.penalties) || 0), 0),
@@ -172,7 +179,7 @@ export function shortGame(holes) {
     sandSaves: list.filter(h => h.sand_save === true).length,
     // Rondas anteriores al botón de búnker: un sand save implica que hubo búnker.
     bunkers: list.filter(h => h.bunker === true || h.sand_save === true).length,
-    threePutts: list.filter(h => h.putts !== '' && h.putts !== null && Number(h.putts) >= 3).length,
+    threePutts: list.filter(h => isKnown(h.putts) && Number(h.putts) >= 3).length,
     holes: list.length,
     missedGreens,
     scramblingPct: missedGreens ? Math.round(upDowns / missedGreens * 100) : null,
@@ -185,7 +192,8 @@ export function shortGame(holes) {
 export function playAverages(holes) {
   const list = (holes || []).filter(h => h && Number(h.score));
   if (!list.length) return null;
-  const withPutts = list.filter(h => Number.isFinite(Number(h.putts)));
+  const withPutts = list.filter(h => isKnown(h.putts) && Number.isFinite(Number(h.putts)));
+  const girTries = list.filter(h => h.green_in_regulation === true || h.green_in_regulation === false);
   const fairwayTries = list.filter(h => h.fairway_hit === true || h.fairway_hit === false);
   return {
     holes: list.length,
@@ -193,6 +201,6 @@ export function playAverages(holes) {
     fairwayPct: fairwayTries.length
       ? Math.round(fairwayTries.filter(h => h.fairway_hit === true).length / fairwayTries.length * 100)
       : null,
-    girPct: Math.round(list.filter(h => h.green_in_regulation === true).length / list.length * 100),
+    girPct: girTries.length ? Math.round(girTries.filter(h => h.green_in_regulation === true).length / girTries.length * 100) : null,
   };
 }

@@ -150,21 +150,21 @@ export function renderDashboard(round, meHoles) {
         <div style="font-family:var(--font-display); font-size:36px; color:var(--muted); line-height:1;">${diffStr}</div>
       </div>
       <div class="dash-course">${attrText(round.course_name || '')}</div>
-      <div class="dash-date">${formatDate(round.date)} · ${attrText(round.tees || '')}</div>
+      <div class="dash-date">${formatDate(round.date)}${round.tees ? ' · ' + attrText(round.tees) : ''}</div>
     </div>
 
     ${switcherHtml}
     ${standingsHtml}
 
     <div class="stats-grid">
-      <div class="stat-card">
+      ${avgPutts !== null ? `<div class="stat-card">
         <div class="stat-val green">${avgPutts}</div>
         <div class="stat-lbl">${isScramble ? 'Putts equipo / hoyo' : 'Putts / hoyo'}</div>
-      </div>
-      <div class="stat-card">
+      </div>` : ''}
+      ${girPct !== null ? `<div class="stat-card">
         <div class="stat-val">${girPct}%</div>
         <div class="stat-lbl">${isScramble ? 'GIR equipo' : 'GIR'}</div>
-      </div>
+      </div>` : ''}
       ${fairwayPct !== null ? `<div class="stat-card"><div class="stat-val">${fairwayPct}%</div><div class="stat-lbl">${isScramble ? 'Fairways equipo' : 'Fairways'}</div></div>` : ''}
       ${hcpDiff ? `<div class="stat-card"><div class="stat-val">${hcpDiff}</div><div class="stat-lbl">HCP Diferencial</div></div>` : ''}
     </div>

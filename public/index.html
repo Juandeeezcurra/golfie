@@ -91,9 +91,12 @@
 
 <!-- ===== HISTORY ===== -->
 <div class="screen" id="history">
-  <div class="history-header">
-    <div class="history-title">Historial</div>
-    <div class="history-sub" id="history-sub"></div>
+  <div class="history-header history-header-row">
+    <div>
+      <div class="history-title">Historial</div>
+      <div class="history-sub" id="history-sub"></div>
+    </div>
+    <button type="button" class="pill-btn" onclick="goTo('past-round')">+ Ronda pasada</button>
   </div>
   <div class="history-list" id="all-rounds"></div>
 </div>
@@ -111,6 +114,32 @@
   </div>
   <div class="history-list" id="friends-list"></div>
   <button class="cta-btn friends-add-btn" onclick="showAddFriend()">+ Agregar amigo</button>
+</div>
+
+<!-- ===== CARGAR RONDA PASADA ===== -->
+<div class="screen" id="past-round">
+  <div class="nav">
+    <button class="nav-back" onclick="switchTab('history')">← Historial</button>
+  </div>
+  <div class="form-screen">
+    <div class="screen-title">Ronda pasada</div>
+    <div class="form-hint" style="margin-top:-16px;">Pasá una tarjeta que ya jugaste: solo los golpes de cada hoyo. Cargá los hoyos que jugaste y dejá vacíos los demás.</div>
+
+    <div class="field">
+      <label class="label" for="pr-course">Cancha</label>
+      <input class="input" id="pr-course" list="pr-courses" placeholder="Nombre de la cancha" autocomplete="off" oninput="pastCourseChanged(this.value)">
+      <datalist id="pr-courses"></datalist>
+    </div>
+    <div class="field">
+      <label class="label" for="pr-date">Fecha</label>
+      <input class="input" id="pr-date" type="date">
+    </div>
+
+    <div class="pr-head"><span>Hoyo</span><span>Par</span><span>Golpes</span></div>
+    <div id="pr-grid"></div>
+    <div class="pr-total" id="pr-total"></div>
+    <button class="primary-btn" onclick="savePastRound()">GUARDAR RONDA →</button>
+  </div>
 </div>
 
 <!-- ===== FICHA DE AMIGO ===== -->

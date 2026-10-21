@@ -23,13 +23,17 @@ export function isFairwayOpportunity(hole) {
   return hole.fairway_hit === true || hole.fairway_hit === false;
 }
 
+// Un dato "sin cargar" (ronda pasada a mano) llega como undefined o, desde el
+// servidor, como ''. No es lo mismo que un 0: no entra en los promedios.
+export const isKnown = v => v !== undefined && v !== null && v !== '';
+
 // Totales que se persisten al terminar la ronda.
 export function roundTotals(holes) {
   const list = holes || [];
   return {
     total_score: list.reduce((a, h) => a + h.score, 0),
     par_total: list.reduce((a, h) => a + h.par, 0),
-    total_putts: list.reduce((a, h) => a + h.putts, 0),
+    total_putts: list.reduce((a, h) => a + (isKnown(h.putts) ? Number(h.putts) : 0), 0),
     fairways_hit: list.filter(h => h.fairway_hit === true).length,
     // Histórico: al guardar se usa `!== null` porque los hoyos recién jugados
     // guardan null en los par 3. No se unifica con isFairwayOpportunity() para
@@ -59,11 +63,14 @@ export function displayStats(holes) {
   const list = holes || [];
   if (!list.length) return null;
   const fairwayHoles = list.filter(isFairwayOpportunity);
+  const girHoles = list.filter(h => h.green_in_regulation === true || h.green_in_regulation === false);
+  const puttHoles = list.filter(h => isKnown(h.putts));
   return {
     fairwayPct: fairwayHoles.length
       ? Math.round(fairwayHoles.filter(h => h.fairway_hit).length / fairwayHoles.length * 100)
       : null,
-    girPct: Math.round(list.filter(h => h.green_in_regulation).length / list.length * 100),
-    avgPutts: (list.reduce((a, h) => a + h.putts, 0) / list.length).toFixed(1),
+    // null cuando la ronda no tiene ese dato (ronda cargada sólo con golpes).
+    girPct: girHoles.length ? Math.round(girHoles.filter(h => h.green_in_regulation === true).length / girHoles.length * 100) : null,
+    avgPutts: puttHoles.length ? (puttHoles.reduce((a, h) => a + Number(h.putts), 0) / puttHoles.length).toFixed(1) : null,
   };
 }

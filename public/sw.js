@@ -18,7 +18,7 @@
 // sin señal en la cancha, a los 2,5s sirve lo cacheado y la app abre igual.
 // ============================================================
 
-const CACHE_VERSION = 'golfie-v3.1';
+const CACHE_VERSION = 'golfie-v3.2';
 const NETWORK_TIMEOUT_MS = 2500;
 
 const PRECACHE = [
@@ -54,6 +54,7 @@ const PRECACHE = [
   '/js/core/stats.js',
   '/js/core/insights.js',
   '/js/core/share.js',
+  '/js/core/past-round.js',
   '/js/ui/router.js',
   '/js/ui/toast.js',
   '/js/ui/modal.js',
@@ -68,6 +69,7 @@ const PRECACHE = [
   '/js/ui/repair.js',
   '/js/ui/friends.js',
   '/js/ui/share.js',
+  '/js/ui/past-round.js',
   '/js/ui/social.js',
 ];
 
