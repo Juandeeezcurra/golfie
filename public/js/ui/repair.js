@@ -8,11 +8,14 @@ import { renderHome } from './home.js';
 
 // ---------- LÍNEAS DE ESTADO DEL HOME ----------
 
+// Estas líneas sólo importan cuando hay algo pendiente de verdad; el resto
+// del tiempo (casi siempre) no tienen que ocupar espacio en el home.
 export function renderPending() {
   const el = document.getElementById('pending-status');
   if (!el) return;
   const n = app.sync.queueGet().length;
   el.textContent = n ? '⟳ ' + n + (n === 1 ? ' cambio sin subir' : ' cambios sin subir') + ' · tocá para reintentar' : '';
+  el.style.display = n ? '' : 'none';
 }
 
 export function renderCleanup() {
@@ -20,6 +23,7 @@ export function renderCleanup() {
   if (!el) return;
   const n = app.sync.orphanRounds().length;
   el.textContent = n ? '⚠ ' + n + (n === 1 ? ' ronda sin identificar' : ' rondas sin identificar') + ' · tocá para revisar' : '';
+  el.style.display = n ? '' : 'none';
 }
 
 export function renderHold() {
@@ -27,6 +31,7 @@ export function renderHold() {
   if (!el) return;
   const n = (app.store.loadFromLS('reconcile_hold') || []).length;
   el.textContent = n ? '⚠ ' + n + ' registros esperando para subir · tocá para revisar' : '';
+  el.style.display = n ? '' : 'none';
 }
 
 export function renderStatusLines() {

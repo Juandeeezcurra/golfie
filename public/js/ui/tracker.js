@@ -21,7 +21,7 @@ function roundHoleCount() {
 export function initHoleTracker() {
   const round = state.currentRound;
   const course = currentCourse();
-  const par = coursePar(course, round?.tee_id) || round?.par_total;
+  const par = coursePar(course, round?.tee_id, roundHoleCount()) || round?.par_total;
   const allowance = ['stableford', 'points420'].includes(round?.format) ? 0.95 : 1;
   const profiles = new Map(app.store.loadPlayers().map(p => [p.player_id, p]));
   if (!state.roundPlayers.length) state.roundPlayers = [{ round_id: round?.round_id, player_id: 'me', name: 'Yo', handicap_index: round?.hcp_index }];
@@ -62,6 +62,10 @@ function renderLiveStandings() {
   const el = document.getElementById('live-standings');
   if (!el || !state.currentRound) return;
   if (state.roundPlayers.length < 2) { el.innerHTML = ''; return; }
+  // El ojito tapa el acumulado propio en el score-strip; sin esto, el mismo
+  // número se seguía viendo acá al lado (resultado en vivo entre jugadores),
+  // que es el otro lugar donde aparecía el score "tapado".
+  const hidden = isScoreHidden();
   const maps = Object.fromEntries(state.roundPlayers.map(p => [p.player_id, app.store.loadHoles(state.currentRound.round_id, p.player_id)]));
   const rows = roundStandings(state.currentRound.format || 'stroke', state.roundPlayers, maps, roundHoleCount(), state.currentHole);
   const hasNet = state.roundPlayers.every(p => p.playing_handicap != null) && hasStrokeIndex(currentCourse());
@@ -71,7 +75,7 @@ function renderLiveStandings() {
       : hasNet ? 'Neto' : 'Golpes';
   el.innerHTML = rows.map(p => `<div class="live-standing ${(state.currentRound.format === 'scramble' ? p.member_ids?.includes(state.currentPlayerId) : p.player_id === state.currentPlayerId) ? 'active' : ''}">
     <div class="live-standing-name">${attrText(p.name || 'Jugador')}</div>
-    <div class="live-standing-value">${p.value ?? '—'}</div><div class="live-standing-name">${label}</div></div>`).join('');
+    <div class="live-standing-value">${hidden ? '••' : (p.value ?? '—')}</div><div class="live-standing-name">${label}</div></div>`).join('');
 }
 
 // Datos de la cancha para el hoyo actual (par, stroke index, largo).
@@ -86,7 +90,7 @@ function currentHoleInfo() {
   const round = state.currentRound;
   const course = currentCourse();
   if (!round || !course) return null;
-  const info = holeInfo(course, state.currentHole, round.tee_id);
+  const info = holeInfo(course, state.currentHole, round.tee_id, roundHoleCount());
   return info ? { ...info, units: course.units === 'yards' ? 'yds' : 'm' } : null;
 }
 
@@ -210,8 +214,11 @@ export function renderHole() {
   updateToggles();
   renderRunningScore();
 
+  // Terminar la ronda es decisión del jugador, no de cuántos hoyos lleva
+  // cargados: hay veces que se juegan 14 y no 9 o 18. El botón está
+  // disponible siempre que haya al menos un hoyo guardado.
   const holesLogged = Object.keys(state.holes).length;
-  document.getElementById('finish-round-btn').style.display = holesLogged >= 9 ? 'block' : 'none';
+  document.getElementById('finish-round-btn').style.display = holesLogged >= 1 ? 'block' : 'none';
 
   // El fairway sólo aplica a par 4/5.
   document.getElementById('toggle-fairway').style.opacity = currentPar === 3 ? 0.3 : 1;

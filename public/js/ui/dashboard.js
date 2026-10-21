@@ -1,51 +1,78 @@
 import { app } from '../context.js';
 import { state } from '../state.js';
 import { formatDate, jsStr, attrText } from '../util.js';
-import { holeClass, displayStats } from '../core/stats.js';
-import { differential } from '../core/handicap.js';
-import { playingHandicap, strokesReceived } from '../core/handicap.js';
+import { holeClass, displayStats, roundTotals, formatDiff } from '../core/stats.js';
+import { differential, playingHandicap, strokesReceived } from '../core/handicap.js';
 import { scorecardSections } from '../core/scorecard.js';
 import { findCourse } from '../catalog.js';
-import { holeInfo, hasStrokeIndex } from '../core/courses.js';
+import { holeInfo, hasStrokeIndex, coursePar } from '../core/courses.js';
 import { scrambleTeamHandicap } from '../core/formats.js';
 import { roundStandings } from '../core/standings.js';
 import { goTo } from './router.js';
 import { initHoleTracker } from './tracker.js';
 
-export function renderDashboard(round, holes) {
+// Qué tarjeta se está mirando dentro de la ronda actual. 'me' por defecto;
+// viewRound() lo resetea cada vez que se entra a una ronda distinta.
+let dashboardPlayerId = 'me';
+
+export function switchDashboardPlayer(playerId) {
+  dashboardPlayerId = playerId;
+  renderDashboard(state.currentRound, Object.values(app.store.loadHoles(state.currentRound.round_id)));
+}
+
+export function renderDashboard(round, meHoles) {
+  const isScramble = round.format === 'scramble';
+  const players = state.roundPlayers && state.roundPlayers.length ? state.roundPlayers : [{ player_id: 'me', name: 'Yo', handicap_index: round.hcp_index }];
+  const multi = !isScramble && players.length > 1;
+  if (!multi) dashboardPlayerId = 'me';
+  const viewedId = dashboardPlayerId;
+  const activePlayer = players.find(p => p.player_id === viewedId) || players[0];
+
+  // La tarjeta que se muestra: la tuya (totales ya calculados en la ronda) o
+  // la de otro participante (se recalcula desde sus propios hoyos — la ronda
+  // sólo guarda los totales de 'me').
+  const holes = viewedId === 'me' ? meHoles : Object.values(app.store.loadHoles(round.round_id, viewedId));
   if (!holes || !holes.length) return;
+  const viewedTotals = viewedId === 'me'
+    ? { total_score: round.total_score, par_total: round.par_total }
+    : roundTotals(holes);
+
   const totalPar = holes.reduce((a, h) => a + h.par, 0);
-  const diff = round.total_score - totalPar;
+  const diff = viewedTotals.total_score - totalPar;
   const diffStr = diff > 0 ? '+' + diff : diff === 0 ? 'E' : String(diff);
 
   const { fairwayPct, girPct, avgPutts } = displayStats(holes);
-  const isScramble = round.format === 'scramble';
-  const me = state.roundPlayers.find(p => p.player_id === 'me');
-  const myTeam = isScramble ? state.roundPlayers.filter(p => p.team_id === me?.team_id) : [];
-  const scrambleHcp = state.roundPlayers.length === 4 && state.roundPlayers.every(p => p.playing_handicap != null) && myTeam.length === 2
+  const me = players.find(p => p.player_id === 'me');
+  const myTeam = isScramble ? players.filter(p => p.team_id === me?.team_id) : [];
+  const scrambleHcp = players.length === 4 && players.every(p => p.playing_handicap != null) && myTeam.length === 2
     ? scrambleTeamHandicap(myTeam.map(p => p.playing_handicap)) : null;
   const scoreTitle = isScramble
     ? `Scramble · Equipo ${me?.team_id || 'A'} · ${myTeam.map(p => p.name).join(' + ')}`
-    : 'Score Final';
+    : multi && viewedId !== 'me' ? `Tarjeta de ${attrText(activePlayer?.name || 'Jugador')}` : 'Score Final';
   const scrambleRows = isScramble
-    ? roundStandings('scramble', state.roundPlayers,
-      Object.fromEntries(state.roundPlayers.map(p => [p.player_id, app.store.loadHoles(round.round_id, p.player_id)])),
+    ? roundStandings('scramble', players,
+      Object.fromEntries(players.map(p => [p.player_id, app.store.loadHoles(round.round_id, p.player_id)])),
       Number(round.course_holes_count) || 18)
     : [];
 
   const holesCount = Number(round.course_holes_count) || 18;
-  const hcpDiffRaw = !isScramble && round.completed && holes.length === holesCount && holesCount === 18
+  const hcpDiffRaw = !isScramble && viewedId === 'me' && round.completed && holes.length === holesCount && holesCount === 18
     ? differential(round.total_score, round.course_rating, round.slope_rating) : null;
   const hcpDiff = hcpDiffRaw === null ? null : hcpDiffRaw.toFixed(1);
   const course = round.course_id ? findCourse(round.course_id) : null;
-  const teePar = round.par_total || (course?.tees?.find(t => t.tee_id === round.tee_id)?.par);
+  const teePar = round.par_total || coursePar(course, round.tee_id, holesCount);
+  // Para 'me' se recalcula tal cual hacía siempre (compatibilidad con rondas
+  // de antes de que existiera round_players, que no tienen playing_handicap
+  // guardado). Para otro jugador no hay otra fuente: se usa el que se
+  // calculó al armar la ronda.
   const playingHcp = isScramble ? scrambleHcp
-    : holes.length === holesCount && round.hcp_index !== '' && round.hcp_index != null && round.course_rating && round.slope_rating && teePar
-    ? playingHandicap(round.hcp_index, round.course_rating, round.slope_rating, teePar, 1, holesCount)
-    : null;
+    : viewedId === 'me'
+    ? (holes.length === holesCount && round.hcp_index !== '' && round.hcp_index != null && round.course_rating && round.slope_rating && teePar
+      ? playingHandicap(round.hcp_index, round.course_rating, round.slope_rating, teePar, 1, holesCount) : null)
+    : (activePlayer?.playing_handicap ?? null);
   const cardHoles = holes.map(h => {
     if (h.stroke_index != null || h.hole_length != null || !course) return h;
-    const info = holeInfo(course, h.hole_number, round.tee_id);
+    const info = holeInfo(course, h.hole_number, round.tee_id, holesCount);
     return info ? { ...h, stroke_index: info.si, hole_length: info.length } : h;
   });
   const card = scorecardSections(cardHoles, playingHcp, holesCount);
@@ -54,16 +81,45 @@ export function renderDashboard(round, holes) {
   const bestClub = Object.entries(state.clubFeedback).find(([_, f]) => f.rating === 'verde');
   const worstClub = Object.entries(state.clubFeedback).find(([_, f]) => f.rating === 'rojo');
 
+  // Switcher de jugadores + posiciones combinadas: sólo para rondas de más
+  // de un jugador que no sean Scramble (el Scramble ya muestra el resultado
+  // por equipos arriba, no tiene sentido individual).
+  const switcherHtml = multi ? `
+    <div class="player-switch">
+      ${players.map(p => `<button type="button" class="player-switch-btn ${p.player_id === viewedId ? 'active' : ''}"
+        onclick="switchDashboardPlayer('${jsStr(p.player_id)}')">${attrText(p.name || 'Jugador')}</button>`).join('')}
+    </div>` : '';
+
+  const standingsRows = multi
+    ? roundStandings(round.format || 'stroke', players,
+      Object.fromEntries(players.map(p => [p.player_id, app.store.loadHoles(round.round_id, p.player_id)])),
+      holesCount)
+    : [];
+  const standingsHasNet = multi && players.every(p => p.playing_handicap != null) && hasStrokeIndex(course);
+  const standingsLabel = round.format === 'match' ? 'Match'
+    : ['stableford', 'points420'].includes(round.format) ? 'Puntos'
+    : standingsHasNet ? 'Neto' : 'Golpes';
+  const standingsHtml = multi && standingsRows.length ? `
+    <div class="section-title">Resultado</div>
+    <div class="live-standings">${standingsRows.map(p => `<div class="live-standing ${p.player_id === viewedId ? 'active' : ''}">
+      <div class="live-standing-name">${attrText(p.name)}</div>
+      <div class="live-standing-value">${p.value ?? '—'}</div>
+      <div class="live-standing-name">${standingsLabel} · ${p.played} hoyos</div>
+    </div>`).join('')}</div>` : '';
+
   document.getElementById('dashboard-content').innerHTML = `
     <div class="dash-hero">
       <div style="font-size:13px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">${attrText(scoreTitle)}</div>
       <div style="display:flex; align-items:baseline; justify-content:center; gap:10px;">
-        <div class="dash-score">${round.total_score}</div>
+        <div class="dash-score">${viewedTotals.total_score}</div>
         <div style="font-family:var(--font-display); font-size:36px; color:var(--muted); line-height:1;">${diffStr}</div>
       </div>
       <div class="dash-course">${attrText(round.course_name || '')}</div>
       <div class="dash-date">${formatDate(round.date)} · ${attrText(round.tees || '')}</div>
     </div>
+
+    ${switcherHtml}
+    ${standingsHtml}
 
     <div class="stats-grid">
       <div class="stat-card">
@@ -82,38 +138,35 @@ export function renderDashboard(round, holes) {
       <div class="live-standings">${scrambleRows.map(team => `<div class="live-standing">
         <div class="live-standing-name">${attrText(team.name)}</div>
         <div class="live-standing-value">${team.value}</div>
-        <div class="live-standing-name">${scrambleHcp != null && state.roundPlayers.every(p => p.playing_handicap != null) && hasStrokeIndex(course) ? 'Neto equipo' : 'Golpes equipo'} · ${team.played} hoyos</div>
+        <div class="live-standing-name">${scrambleHcp != null && players.every(p => p.playing_handicap != null) && hasStrokeIndex(course) ? 'Neto equipo' : 'Golpes equipo'} · ${team.played} hoyos</div>
       </div>`).join('')}</div>` : ''}
 
     <div class="section-title">Tarjeta</div>
-    <div class="scorecard-wrap">
-      <table class="scorecard-table">
-        <thead><tr><th>Hoyo</th><th>Par</th><th>SI</th>${units ? '<th>Largo</th>' : ''}<th>Golpes</th>${card.hasNet ? '<th>Neto</th>' : ''}<th>Putts</th></tr></thead>
-        <tbody>
-          ${card.holes.map(h => {
-            const si = Number(h.stroke_index || h.si);
-            const strokes = card.hasNet && Number.isInteger(si) ? strokesReceived(playingHcp, si, holesCount) : null;
-            const net = strokes === null ? null : Number(h.score) - strokes;
-            return `<tr><td>${h.hole_number}</td><td>${h.par}</td><td>${Number.isInteger(si) ? si : '—'}</td>${units ? `<td>${h.hole_length ?? ''}</td>` : ''}<td class="scorecell ${holeClass(h.score, h.par)}">${h.score}</td>${card.hasNet ? `<td>${net ?? '—'}</td>` : ''}<td>${h.putts ?? '—'}</td></tr>`;
-          }).join('')}
-          <tr class="scorecard-total"><td>Ida</td><td>${card.front.par || '—'}</td><td>·</td>${units ? '<td>·</td>' : ''}<td>${card.front.holes.length ? card.front.score : '—'}</td>${card.hasNet ? `<td>${card.front.holes.length ? card.front.net : '—'}</td>` : ''}<td>${card.front.holes.length ? card.front.putts : '—'}</td></tr>
-          ${holesCount > 9 ? `<tr class="scorecard-total"><td>Vuelta</td><td>${card.back.par || '—'}</td><td>·</td>${units ? '<td>·</td>' : ''}<td>${card.back.holes.length ? card.back.score : '—'}</td>${card.hasNet ? `<td>${card.back.holes.length ? card.back.net : '—'}</td>` : ''}<td>${card.back.holes.length ? card.back.putts : '—'}</td></tr>` : ''}
-          <tr class="scorecard-total scorecard-grand"><td>Total</td><td>${card.total.par}</td><td>·</td>${units ? '<td>·</td>' : ''}<td>${card.total.score}</td>${card.hasNet ? `<td>${card.total.net}</td>` : ''}<td>${card.total.putts}</td></tr>
-        </tbody>
-      </table>
+    <div class="scorecard-totals">
+      <div class="scorecard-total-card">
+        <div class="stc-val">${card.front.holes.length ? card.front.score : '—'}</div>
+        <div class="stc-lbl">Ida${card.front.holes.length ? ' · ' + formatDiff(card.front.score - card.front.par) : ''}</div>
+      </div>
+      ${holesCount > 9 ? `<div class="scorecard-total-card">
+        <div class="stc-val">${card.back.holes.length ? card.back.score : '—'}</div>
+        <div class="stc-lbl">Vuelta${card.back.holes.length ? ' · ' + formatDiff(card.back.score - card.back.par) : ''}</div>
+      </div>` : ''}
+      <div class="scorecard-total-card scorecard-total-grand">
+        <div class="stc-val">${card.total.score}</div>
+        <div class="stc-lbl">Total · ${diffStr}</div>
+      </div>
     </div>
-    <div class="section-title">Resultado por hoyo</div>
     <div class="holes-grid">
-      ${holes.slice().sort((a, b) => a.hole_number - b.hole_number).map(h =>
+      ${cardHoles.slice().sort((a, b) => a.hole_number - b.hole_number).map(h =>
         `<div class="hole-card ${holeClass(h.score, h.par)}">
           <div class="hc-num">Hoyo ${h.hole_number}</div>
           <div class="hc-score-wrap"><div class="hc-score">${h.score}</div></div>
-          <div class="hc-par">Par ${h.par}</div>
+          <div class="hc-par">Par ${h.par}${units && h.hole_length ? ' · ' + h.hole_length + ' ' + units : ''}</div>
         </div>`
       ).join('')}
     </div>
 
-    ${Object.keys(state.clubFeedback).length ? `
+    ${viewedId === 'me' && Object.keys(state.clubFeedback).length ? `
       <div class="section-title" style="margin-top:24px;">Palos</div>
       <div class="club-feedback-summary">
         ${Object.entries(state.clubFeedback).filter(([_, f]) => f.rating || f.tags.length).map(([club, fb]) => `
@@ -128,7 +181,7 @@ export function renderDashboard(round, holes) {
       </div>
     ` : ''}
 
-    ${bestClub || worstClub ? `
+    ${viewedId === 'me' && (bestClub || worstClub) ? `
       <div class="section-title" style="margin-top:24px;">Highlights</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         ${bestClub ? `<div class="stat-card"><div style="font-size:11px;color:var(--green);letter-spacing:1px;margin-bottom:4px;">MEJOR PALO</div><div style="font-size:16px;font-weight:500;">${attrText(bestClub[0])}</div></div>` : ''}
@@ -150,6 +203,7 @@ export function viewRound(round_id) {
   state.clubFeedback = app.store.loadClubs(round_id);
   state.roundPlayers = app.store.loadRoundPlayers(round_id);
   if (!state.roundPlayers.length) state.roundPlayers = [{ round_id, player_id: 'me', name: 'Yo', handicap_index: round.hcp_index }];
+  dashboardPlayerId = 'me';
 
   if (!round.completed) {
     const holeCount = Number(round.course_holes_count) || 18;
@@ -188,7 +242,7 @@ export function exportRoundCSV(round_id) {
   const rows = [
     [ ...(round.format === 'scramble' ? ['Equipo'] : []), 'Fecha', 'Cancha', 'Tees', 'Hoyo', 'Par', 'SI', 'Distancia', 'Golpes', 'Neto', 'Putts', 'Penales'],
     ...holes.map(h => {
-      const info = course && (h.stroke_index == null || h.hole_length == null) ? holeInfo(course, h.hole_number, round.tee_id) : null;
+      const info = course && (h.stroke_index == null || h.hole_length == null) ? holeInfo(course, h.hole_number, round.tee_id, count) : null;
       const si = h.stroke_index ?? info?.si;
       const length = h.hole_length ?? info?.length;
       const strokes = hcp !== null && si != null ? strokesReceived(hcp, si, count) : null;
@@ -196,7 +250,7 @@ export function exportRoundCSV(round_id) {
       return [ ...(round.format === 'scramble' ? [teamName] : []), round.date, round.course_name, round.tees, h.hole_number, h.par, si ?? '', length ?? '', h.score, net, h.putts ?? '', h.penalties ?? ''];
     }),
   ];
-  const csv = '\uFEFF' + rows.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\r\n');
+  const csv = '﻿' + rows.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

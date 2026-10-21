@@ -10,18 +10,22 @@ import { createStore } from './store.js';
 import { createSync } from './sync.js';
 import { goTo, switchTab, onEnter } from './ui/router.js';
 import { showToast } from './ui/toast.js';
-import { renderHome, renderUserCode, showUserCode } from './ui/home.js';
+import { renderHome, renderUserCode, showUserCode, showSettings } from './ui/home.js';
 import { renderHistory, deleteRound } from './ui/history.js';
 import { loadCoursesIntoState, prefillHcp, filterCourses, selectTee, pickCatalogCourse, pickFreeCourse, startRound, initSetup, renderRoundPlayers, toggleRoundPlayer, toggleScrambleTeam, addFriend } from './ui/setup.js';
 import { renderCourseFormHoles, saveNewCourse } from './ui/course-form.js';
 import { loadCatalog } from './catalog.js';
 import { setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort, toggleScoreVisibility } from './ui/tracker.js';
 import { initClubFeedback, setSemaforo, toggleTag, finishRound } from './ui/clubs.js';
-import { viewRound, exportRoundCSV } from './ui/dashboard.js';
+import { viewRound, exportRoundCSV, switchDashboardPlayer } from './ui/dashboard.js';
 import {
   renderPending, renderCleanup, renderHold, renderStatusLines,
   showRepair, showCleanup, showHold, clearQueue,
 } from './ui/repair.js';
+import {
+  renderFriendsList, showAddFriend, viewFriend, renderFriendDetailScreen,
+  editCurrentFriend, viewFriendRound, applySuggestedHandicap,
+} from './ui/friends.js';
 
 // ---------- INSTANCIAS ----------
 app.store = createStore(window.localStorage);
@@ -44,13 +48,15 @@ onEnter('home', renderHome);
 onEnter('history', renderHistory);
 onEnter('new-round', () => { loadCoursesIntoState(); prefillHcp(); renderRoundPlayers(); });
 onEnter('new-course', renderCourseFormHoles);
+onEnter('friends', renderFriendsList);
+onEnter('friend-detail', renderFriendDetailScreen);
 
 // ---------- HANDLERS DEL HTML ----------
 // El markup usa onclick="..." inline, así que estas funciones tienen que ser
 // globales. Es el puente entre el HTML y los módulos.
 Object.assign(window, {
   goTo, switchTab,
-  renderHome, showUserCode,
+  renderHome, showUserCode, showSettings,
   renderHistory, deleteRound,
   filterCourses, selectTee, pickCatalogCourse, pickFreeCourse, startRound,
   renderRoundPlayers, toggleRoundPlayer, toggleScrambleTeam, addFriend,
@@ -58,8 +64,9 @@ Object.assign(window, {
   setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort,
   toggleScoreVisibility,
   initClubFeedback, setSemaforo, toggleTag, finishRound,
-  viewRound, exportRoundCSV,
+  viewRound, exportRoundCSV, switchDashboardPlayer,
   showRepair, showCleanup, showHold, clearQueue,
+  renderFriendsList, showAddFriend, viewFriend, editCurrentFriend, viewFriendRound, applySuggestedHandicap,
   renderPending, renderCleanup, renderHold,
   flushPending: () => app.sync.flushPending(),
 });

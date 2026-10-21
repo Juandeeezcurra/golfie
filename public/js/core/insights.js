@@ -9,7 +9,7 @@
 // ============================================================
 
 import { holeClass } from './stats.js';
-import { calcHandicapIndex } from './handicap.js';
+import { calcHandicapIndex, differential } from './handicap.js';
 
 // Una ronda cuenta para estadísticas si está terminada y tiene score y par.
 export function completedRounds(rounds) {
@@ -81,6 +81,25 @@ export function handicapIndexNow(rounds) {
   const done = completedRounds(rounds);
   const current = calcHandicapIndex(done);
   return { current: current === null ? null : Number(current), rounds: done.length };
+}
+
+// Versión "provisoria" para cuando todavía no hay las 3 rondas que pide el
+// cálculo oficial (calcHandicapIndex): promedia los diferenciales que haya,
+// sin la tabla de ajuste WHS (que requiere al menos 3). Se usa para mostrar
+// algo útil antes de esa marca — ej. la ficha de un amigo recién agregado —
+// siempre dejando en claro que es una estimación, no el índice real.
+export function provisionalHandicapIndex(rounds) {
+  const real = handicapIndexNow(rounds);
+  if (real.current !== null) return { value: real.current, provisional: false, rounds: real.rounds };
+
+  const eligible = completedRounds(rounds)
+    .filter(r => (Number(r.course_holes_count) || 18) === 18 && r.total_score && r.slope_rating && r.course_rating)
+    .slice(0, 20);
+  if (!eligible.length) return { value: null, provisional: false, rounds: 0 };
+
+  const diffs = eligible.map(r => differential(r.total_score, r.course_rating, r.slope_rating));
+  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  return { value: Number(Math.max(-10, avg).toFixed(1)), provisional: true, rounds: eligible.length };
 }
 
 // Forma reciente: promedio contra el par de las últimas `window` rondas vs

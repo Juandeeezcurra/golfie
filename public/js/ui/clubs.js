@@ -49,14 +49,18 @@ export function finishRound() {
   state.currentPlayerId = 'me';
   state.holes = holesMap;
   const totals = roundTotals(holes);
-  const target = Number(state.currentRound.course_holes_count) || 18;
-  const allPlayersComplete = (state.roundPlayers.length ? state.roundPlayers : [{ player_id: 'me' }])
-    .every(p => Object.keys(app.store.loadHoles(roundId, p.player_id)).length >= target);
 
+  // Terminar la ronda es una acción explícita: "jugué hasta acá y quiero
+  // cerrarla", sea hoyo 9, 14 o 18. Antes se comparaba contra el target
+  // original (18 salvo que se hubiera elegido 9 de antemano) y una ronda
+  // cortada a mitad de la vuelta quedaba "en curso" para siempre aunque el
+  // jugador tocara "Finalizar ronda". Ahora el total de hoyos de la ronda
+  // pasa a ser lo que efectivamente se jugó.
   const roundUpdate = {
     ...state.currentRound,
     ...totals,
-    completed: allPlayersComplete,
+    course_holes_count: holes.length,
+    completed: true,
   };
 
   state.currentRound = roundUpdate;

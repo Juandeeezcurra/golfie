@@ -270,10 +270,24 @@ export async function getPlayers(db, userId) {
   return results.map(r => rowFromSql(SHEETS.PLAYERS, r));
 }
 
+// round_players no guarda nombre ni handicap (son del perfil del jugador,
+// en la tabla `players`) — se resuelven acá con un JOIN. Sin esto, cualquier
+// dispositivo que no haya CREADO la ronda (otro teléfono, la compu vinculada
+// por código) recibe jugadores sin nombre y el switcher del dashboard
+// termina mostrando "Jugador" genérico para todos.
 export async function getRoundPlayers(db, userId) {
   if (!userId) return [];
-  const { results } = await db.prepare('SELECT * FROM round_players WHERE user_id = ? ORDER BY _seq').bind(userId).all();
-  return results.map(r => rowFromSql(SHEETS.ROUND_PLAYERS, r));
+  const { results } = await db.prepare(`
+    SELECT rp.*, p.name AS p_name, p.handicap_index AS p_hcp
+    FROM round_players rp
+    LEFT JOIN players p ON p.player_id = rp.player_id AND (p.user_id = rp.user_id OR p.user_id = '' OR p.user_id IS NULL)
+    WHERE rp.user_id = ? ORDER BY rp._seq
+  `).bind(userId).all();
+  return results.map(r => ({
+    ...rowFromSql(SHEETS.ROUND_PLAYERS, r),
+    name: r.player_id === 'me' ? 'Yo' : (r.p_name || ''),
+    handicap_index: r.p_hcp == null ? '' : r.p_hcp,
+  }));
 }
 
 // ==================== MIGRACIÓN (correr a mano una sola vez) ====================

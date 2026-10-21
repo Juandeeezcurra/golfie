@@ -14,6 +14,8 @@
 
   #home.screen.active,
   #history.screen.active,
+  #friends.screen.active,
+  #friend-detail.screen.active,
   #new-round.screen.active,
   #hole-tracker.screen.active,
   #club-feedback.screen.active,
@@ -241,7 +243,8 @@
     justify-content: center;
   }
 
-  #history.screen.active {
+  #history.screen.active,
+  #friends.screen.active {
     padding: 34px 32px 72px 220px;
   }
 
@@ -255,6 +258,11 @@
 
   .history-title {
     font-size: 44px;
+  }
+
+  .friends-add-btn {
+    width: min(860px, 100%);
+    margin: 20px auto calc(24px + env(safe-area-inset-bottom));
   }
 
   .modal-card {

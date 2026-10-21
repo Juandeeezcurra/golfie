@@ -35,7 +35,7 @@ export function saveNewCourse() {
   if (!name) { showToast('Poné el nombre de la cancha'); return; }
 
   const count = Number(document.getElementById('nc-holes').value) || 18;
-  const units = document.getElementById('nc-units').value;
+  const units = 'yards';
   const slope = parseFloat(document.getElementById('nc-slope').value) || null;
   const rating = parseFloat(document.getElementById('nc-rating').value) || null;
 

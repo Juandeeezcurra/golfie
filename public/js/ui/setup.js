@@ -22,6 +22,18 @@ const FALLBACK_TEES = [
 let selected = null;
 let selectedPlayerIds = new Set(['me']);
 let scrambleTeams = new Map();
+// Cuántos hoyos se juegan esta ronda. null = el tamaño natural del catálogo
+// (18 en casi todas; para una cancha de 9 como Bulogne, se elige acá).
+let selectedHolesCount = null;
+
+// Varios clubes (Bulogne, por ejemplo) tienen una sola vuelta de 9 hoyos que
+// se juega dos veces para completar 18. Se asume siempre que se juegan los
+// 18 (es el caso más común, y el jugador puede terminar la ronda cuando
+// quiera desde el tracker si en los hechos jugó menos).
+function effectiveHolesCount() {
+  if (!selected) return 18;
+  return selectedHolesCount || selected.holes.length;
+}
 
 export function selectedCourse() {
   return selected;
@@ -152,6 +164,9 @@ export function pickCatalogCourse(courseId) {
   const course = findCourse(courseId);
   if (!course) return;
   selected = course;
+  // Por defecto, una cancha de 9 se asume jugada ida y vuelta (18). El
+  // usuario puede bajarla a 9 desde el selector que aparece en course-meta.
+  selectedHolesCount = course.holes.length === 9 ? 18 : null;
 
   document.getElementById('course-input').value = course.name;
   document.getElementById('course-id-input').value = course.course_id;
@@ -168,6 +183,7 @@ export function pickCatalogCourse(courseId) {
 // Cancha escrita a mano (o de una ronda vieja): comportamiento de siempre.
 export function pickFreeCourse(name, tees, slope, rating) {
   selected = null;
+  selectedHolesCount = null;
   document.getElementById('course-input').value = name;
   document.getElementById('course-id-input').value = '';
   document.getElementById('tee-id-input').value = '';
@@ -231,15 +247,24 @@ function renderCourseMeta() {
 
   const teeId = document.getElementById('tee-id-input').value;
   const tee = teeById(selected, teeId);
-  const par = coursePar(selected, teeId);
+  const holesCount = effectiveHolesCount();
+  const isNineLoop = selected.holes.length === 9;
+  const par = coursePar(selected, teeId, holesCount);
   const units = selected.units === 'yards' ? 'yds' : 'm';
   const bits = [
     par ? `Par ${par}` : null,
-    tee && tee.length ? `${tee.length} ${units}` : null,
-    `${selected.holes.length} hoyos`,
+    tee && tee.length ? `${isNineLoop && holesCount === 18 ? tee.length * 2 : tee.length} ${units}` : null,
+    `${holesCount} hoyos`,
   ].filter(Boolean);
 
+  // No se pregunta de antemano si se van a jugar 9 o 18: se asume la vuelta
+  // completa (lo más común en estas canchas) y listo, se puede terminar la
+  // ronda cuando se quiera desde el tracker — incluso a mitad de la vuelta,
+  // o siguiendo más allá si hiciera falta.
   const notices = [];
+  if (isNineLoop) {
+    notices.push('Cancha de 9 hoyos: se arma para jugar ida y vuelta (18). El stroke index se reparte entre los 18 con la convención estándar (ida = 2×SI−1, vuelta = 2×SI), así los golpes de handicap no se duplican en los mismos hoyos. Si jugás menos, "Finalizar ronda" cierra con lo que hayas cargado.');
+  }
   if (!hasStrokeIndex(selected)) {
     notices.push('Esta cancha no tiene stroke index cargado: se van a poder anotar los hoyos igual, pero no repartir golpes de handicap.');
   }
@@ -268,6 +293,7 @@ export function initSetup() {
     input.addEventListener('input', () => {
       if (selected && input.value !== selected.name) {
         selected = null;
+        selectedHolesCount = null;
         document.getElementById('course-id-input').value = '';
         document.getElementById('tee-id-input').value = '';
         document.getElementById('tees-input').value = '';
@@ -307,7 +333,7 @@ export function startRound() {
     tees: document.getElementById('tees-input').value,
     course_id: courseId,
     tee_id: teeId,
-    course_holes_count: selected && courseId ? selected.holes.length : 18,
+    course_holes_count: selected && courseId ? effectiveHolesCount() : 18,
     format,
     slope_rating: parseFloat(document.getElementById('slope-input').value) || (courseId ? '' : 113),
     course_rating: parseFloat(document.getElementById('rating-input').value) || (courseId ? '' : 72),
@@ -329,7 +355,7 @@ export function startRound() {
   const participantRows = participantIds.map(playerId => {
     const hcp = playerId === 'me' ? (hcpValue === '' ? null : Number(hcpValue)) : profiles.get(playerId)?.handicap_index;
     const playing = hcp == null || hcp === '' ? null : playingHandicap(hcp, roundData.course_rating, roundData.slope_rating,
-      coursePar(selected, teeId) || roundData.par_total, allowance, roundData.course_holes_count);
+      coursePar(selected, teeId, roundData.course_holes_count) || roundData.par_total, allowance, roundData.course_holes_count);
     const profile = profiles.get(playerId);
     return { round_id: roundData.round_id, player_id: playerId, name: playerId === 'me' ? 'Yo' : profile?.name || 'Jugador', handicap_index: hcp ?? null, team_id: format === 'scramble' ? scrambleTeams.get(playerId) : '', playing_handicap: playing };
   });

@@ -44,21 +44,42 @@ export function defaultTee(course) {
   return teeById(course, 'blancos') || course.tees[0];
 }
 
-export function holeInfo(course, holeNumber, teeId) {
-  if (!course || !course.holes) return null;
-  const hole = course.holes.find(h => Number(h.hole) === Number(holeNumber));
+// Varios clubes del conurbano (Bulogne entre ellos) tienen una sola vuelta de
+// 9 hoyos que se juega dos veces para completar 18. `roundHolesCount` es
+// cuántos hoyos se juegan EN ESTA RONDA (no cuántos tiene la cancha): si es
+// el doble de lo que tiene el catálogo, el hoyo N>9 es físicamente el mismo
+// hoyo N-9, y el stroke index se desdobla con la convención estándar de
+// golf para una vuelta de 9 jugada dos veces: ida = 2·SI−1, vuelta = 2·SI.
+// Así el reparto de golpes cubre los 18 en vez de duplicar los mismos 9.
+function isReplayedNine(course, roundHolesCount) {
+  const catalogCount = (course && course.holes || []).length;
+  return catalogCount === 9 && Number(roundHolesCount) === 18;
+}
+
+export function holeInfo(course, holeNumber, teeId, roundHolesCount) {
+  if (!course || !course.holes || !course.holes.length) return null;
+  const catalogCount = course.holes.length;
+  const n = Number(holeNumber);
+  const replayed = isReplayedNine(course, roundHolesCount);
+  const physicalHole = replayed ? ((n - 1) % catalogCount) + 1 : n;
+  const hole = course.holes.find(h => Number(h.hole) === physicalHole);
   if (!hole) return null;
   const lengths = hole.lengths || {};
   const length = teeId && lengths[teeId] != null ? lengths[teeId] : null;
-  return { hole: hole.hole, par: hole.par, si: hole.si == null ? null : hole.si, length };
+  let si = hole.si == null ? null : hole.si;
+  if (si != null && replayed) si = n > catalogCount ? si * 2 : si * 2 - 1;
+  return { hole: n, par: hole.par, si, length };
 }
 
-export function coursePar(course, teeId) {
+export function coursePar(course, teeId, roundHolesCount) {
+  const catalogCount = (course && course.holes || []).length;
   const tee = teeId ? teeById(course, teeId) : null;
-  if (tee && tee.par) return tee.par;
-  if (!course || !course.holes) return null;
-  const pars = course.holes.map(h => Number(h.par)).filter(Boolean);
-  return pars.length ? pars.reduce((a, b) => a + b, 0) : null;
+  const basePar = tee && tee.par ? tee.par
+    : catalogCount ? course.holes.reduce((a, h) => a + (Number(h.par) || 0), 0) || null : null;
+  if (basePar == null) return null;
+  // El par del tee es el de UNA vuelta del catálogo; si esta ronda juega el
+  // doble de hoyos (9 de ida y vuelta), el par total también se duplica.
+  return isReplayedNine(course, roundHolesCount) ? basePar * 2 : basePar;
 }
 
 // ¿Tiene stroke index completo? Sin esto no se pueden repartir los golpes.

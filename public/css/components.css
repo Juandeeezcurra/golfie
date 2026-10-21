@@ -49,6 +49,51 @@
 .round-card-right .score-big { font-family: var(--font-display); font-size: 32px; color: var(--green); line-height: 1; }
 .round-card-right .score-label { font-size: 13px; color: var(--muted); }
 
+/* AMIGOS */
+.friend-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.friend-card:active { border-color: var(--green); }
+.friend-avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--green-glow); color: var(--green);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-family: var(--font-display); font-size: 20px;
+}
+.friend-main { flex: 1; min-width: 0; }
+.friend-name { font-size: 16px; font-weight: 500; }
+.friend-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.friend-chevron { color: var(--muted); font-size: 20px; flex-shrink: 0; }
+.friends-add-btn {
+  margin: 20px 24px calc(24px + env(safe-area-inset-bottom)); width: calc(100% - 48px);
+  padding: 14px; font-size: 16px; letter-spacing: 0;
+}
+.suggested-hcp-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--green-glow); border: 1px solid var(--green-dim); border-radius: var(--radius);
+  padding: 14px 16px; margin: 16px 0;
+}
+.suggested-hcp-label { font-size: 12px; color: var(--muted); }
+.suggested-hcp-val { font-family: var(--font-display); font-size: 28px; color: var(--green); line-height: 1.2; }
+.suggested-hcp-note { font-size: 11px; color: var(--muted); margin-top: 4px; max-width: 280px; line-height: 1.4; }
+
+/* AJUSTES (home) */
+.home-top-row { display: flex; align-items: center; justify-content: space-between; }
+.settings-btn {
+  background: none; border: 1px solid var(--border); border-radius: 50%; color: var(--muted);
+  width: 38px; height: 38px; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.settings-btn svg { width: 19px; height: 19px; }
+.settings-btn:active { border-color: var(--green); color: var(--green); }
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 4px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 15px;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-arrow { color: var(--muted); font-size: 18px; }
+
 /* ESTADO VACÍO */
 .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 .empty-icon { font-size: 40px; margin-bottom: 12px; }
@@ -218,6 +263,13 @@
   border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-3); line-height: 1.5;
 }
 .tee-btn small { font-size: var(--fs-1); opacity: .65; }
+.holes-count-toggle { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.holes-count-btn {
+  flex: 1; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--muted); font-family: var(--font-body); font-size: var(--fs-3);
+  cursor: pointer; transition: all 0.15s;
+}
+.holes-count-btn.active { background: var(--green-glow); border-color: var(--green); color: var(--green); font-weight: 600; }
 .tees-detailed { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
 .add-course-link {
   text-align: center; font-size: var(--fs-3); color: var(--muted);
@@ -307,7 +359,12 @@
 .stat-lbl { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
 
 /* SCORECARD HOYO A HOYO */
-.scorecard-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 16px 0 24px; background: var(--surface); }
+.scorecard-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+.scorecard-total-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; }
+.scorecard-total-grand { border-color: var(--green-dim); background: rgba(74,222,128,.07); }
+.stc-val { font-family: var(--font-display); font-size: 28px; line-height: 1; color: var(--text); }
+.scorecard-total-grand .stc-val { color: var(--green); }
+.stc-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .3px; }
 .round-players-list { display: flex; flex-direction: column; gap: 8px; }
 .round-player-row { display: flex; gap: 6px; align-items: stretch; }
 .round-player-row .round-player-option { width: auto; flex: 1; min-width: 0; }
@@ -318,34 +375,32 @@
 .scramble-team-btn.team-b { border-color: #fbbf24; color: #fbbf24; }
 .round-player-hcp { color: var(--muted); font-size: 12px; }
 .player-turn { color: var(--green); font-weight: 600; font-size: 13px; margin: 10px 0; }
+.player-switch { display: flex; gap: 8px; overflow-x: auto; margin: 16px 0 12px; }
+.player-switch-btn {
+  flex: none; padding: 8px 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); color: var(--muted); font-family: var(--font-body); font-size: 13px;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.player-switch-btn.active { background: var(--green-glow); border-color: var(--green); color: var(--green); font-weight: 600; }
 .live-standings { display: flex; gap: 8px; overflow-x: auto; margin: 8px 0 16px; }
 .live-standing { flex: 1; min-width: 88px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 10px; }
 .live-standing.active { border-color: var(--green); }
 .live-standing-name { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .live-standing-value { font-family: var(--font-display); font-size: 23px; margin-top: 2px; }
-.scorecard-table { border-collapse: collapse; width: 100%; min-width: 350px; font-size: 12px; font-variant-numeric: tabular-nums; }
-.scorecard-table th, .scorecard-table td { text-align: center; padding: 10px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.scorecard-table th { color: var(--muted); text-transform: uppercase; letter-spacing: .7px; font-size: 10px; font-weight: 500; }
-.scorecard-table th:first-child, .scorecard-table td:first-child { text-align: left; padding-left: 12px; }
-.scorecard-table tr:last-child td { border-bottom: 0; }
-.scorecard-table .scorecell { font-weight: 700; }
-.scorecard-total { color: var(--muted); font-weight: 600; background: rgba(255,255,255,.025); }
-.scorecard-grand { color: var(--text); background: rgba(74,222,128,.07); }
 .holes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
-.hole-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; }
+.hole-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; min-height: 96px; justify-content: center; }
 .hc-num { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-.hc-par { font-size: 10px; color: var(--muted); }
+.hc-par { font-size: 10px; color: var(--muted); line-height: 1.3; text-align: center; }
 .hc-score-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; position: relative; }
 .hc-score { font-family: var(--font-display); font-size: 26px; line-height: 1; position: relative; z-index: 1; }
-/* Eagle: doble círculo */
+/* Eagle: doble círculo (como en una tarjeta profesional) */
 .hole-card.eagle .hc-score-wrap { border: 2px solid #ffd700; border-radius: 50%; }
 .hole-card.eagle .hc-score-wrap::before { content:''; position:absolute; inset:-6px; border:2px solid #ffd700; border-radius:50%; }
 .hole-card.eagle .hc-score { color: #ffd700; }
 /* Birdie: círculo */
 .hole-card.birdie .hc-score-wrap { border: 2px solid var(--green); border-radius: 50%; }
 .hole-card.birdie .hc-score { color: var(--green); }
-/* Par: cuadrado */
-.hole-card.par .hc-score-wrap { border: 2px solid var(--muted); border-radius: 3px; }
+/* Par: sin marca, como en una tarjeta real */
 .hole-card.par .hc-score { color: var(--text); }
 /* Bogey: cuadrado rojo */
 .hole-card.bogey .hc-score-wrap { border: 2px solid var(--red); border-radius: 3px; }

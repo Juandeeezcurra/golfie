@@ -189,6 +189,22 @@ function shortGameHtml(sg) {
     </div>`;
 }
 
+// Bloque de estadísticas reutilizable: lo usa el home (con tus rondas) y la
+// ficha de cada amigo (con las rondas donde participó). `rounds` y `holes`
+// tienen que venir con la forma estándar (ver core/insights.js).
+export function renderInsightsSections(rounds, holes) {
+  if (!rounds.length) return '';
+  return [
+    heroHtml(handicapIndexNow(rounds), scoringForm(rounds)),
+    trendHtml(scoreTrend(rounds)),
+    gameHtml(playAverages(holes)),
+    scoringHtml(scoringDistribution(holes)),
+    parTypeHtml(byParType(holes)),
+    coursesHtml(byCourse(rounds)),
+    shortGameHtml(shortGame(holes)),
+  ].join('');
+}
+
 function clubsHtml() {
   const clubStats = getAllClubStats();
   const byGreen = Object.entries(clubStats).sort((a, b) => b[1].verde - a[1].verde);
@@ -216,17 +232,7 @@ export function renderHome() {
       ? `<div class="panel"><div class="panel-foot" style="text-align:center;">Terminá una ronda para empezar a ver tus números.</div></div>`
       : '';
   } else {
-    const holes = allHoles(done);
-    statsEl.innerHTML = [
-      heroHtml(handicapIndexNow(rounds), scoringForm(rounds)),
-      trendHtml(scoreTrend(rounds)),
-      gameHtml(playAverages(holes)),
-      scoringHtml(scoringDistribution(holes)),
-      parTypeHtml(byParType(holes)),
-      coursesHtml(byCourse(rounds)),
-      shortGameHtml(shortGame(holes)),
-      clubsHtml(),
-    ].join('');
+    statsEl.innerHTML = renderInsightsSections(rounds, allHoles(done)) + clubsHtml();
   }
 
   const container = document.getElementById('recent-rounds');
@@ -240,6 +246,25 @@ export function renderHome() {
 export function renderUserCode() {
   const el = document.getElementById('user-code');
   if (el) el.textContent = 'CÓDIGO ' + app.store.getUserId();
+}
+
+// Ajustes: antes el código y "reparar datos" vivían siempre visibles en el
+// home, ocupando espacio aunque casi nunca se usan. Ahora quedan atrás de un
+// solo ícono.
+export function showSettings() {
+  showModal({
+    title: 'Ajustes',
+    html: `
+      <div class="settings-row" onclick="showUserCode()">
+        <span>Tu código</span><span class="settings-row-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showRepair()">
+        <span>Reparar datos</span><span class="settings-row-arrow">›</span>
+      </div>`,
+    confirmText: 'CERRAR',
+    safe: true,
+    onConfirm: () => {},
+  });
 }
 
 export function showUserCode() {

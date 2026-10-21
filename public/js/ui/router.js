@@ -3,7 +3,7 @@
 // entre el router y las pantallas que navegan.
 
 const hooks = {};
-const TAB_SCREENS = ['home', 'history'];
+const TAB_SCREENS = ['home', 'history', 'friends'];
 
 export function onEnter(screen, fn) {
   (hooks[screen] = hooks[screen] || []).push(fn);
@@ -23,5 +23,6 @@ export function goTo(screen) {
 export function switchTab(tab) {
   document.getElementById('bn-home').classList.toggle('active', tab === 'home');
   document.getElementById('bn-history').classList.toggle('active', tab === 'history');
+  document.getElementById('bn-friends').classList.toggle('active', tab === 'friends');
   goTo(tab);
 }
