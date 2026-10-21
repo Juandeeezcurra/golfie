@@ -3,7 +3,56 @@ import { state, CLUBS, TAGS } from '../state.js';
 import { jsStr } from '../util.js';
 import { roundTotals } from '../core/stats.js';
 import { goTo } from './router.js';
-import { renderDashboard } from './dashboard.js';
+import { showToast } from './toast.js';
+import { renderDashboard, setDashboardOrigin } from './dashboard.js';
+
+// true mientras se corrigen los palos de una ronda ya terminada.
+let editingClubs = false;
+
+// Refleja state.clubFeedback en los botones: sin esto, al abrir la pantalla
+// para otra ronda quedaban marcados los semáforos y tags de la anterior.
+export function renderClubFeedbackUI() {
+  CLUBS.forEach(club => {
+    const key = club.replace(/\s/g, '_');
+    const fb = state.clubFeedback[club];
+    const tags = fb && Array.isArray(fb.tags) ? fb.tags : [];
+    document.querySelectorAll(`#club-${key} .sem-btn`).forEach(b =>
+      b.classList.toggle('active', !!(fb && fb.rating && b.classList.contains(fb.rating))));
+    document.querySelectorAll(`#tags-${key} .tag`).forEach(t =>
+      t.classList.toggle('active', tags.includes(t.textContent.trim())));
+  });
+  const btn = document.getElementById('club-finish-btn');
+  if (btn) btn.textContent = editingClubs ? 'GUARDAR PALOS →' : 'FINALIZAR RONDA →';
+}
+
+export function editClubs() {
+  editingClubs = true;
+  goTo('club-feedback');
+}
+
+export function clubBack() {
+  if (editingClubs) { editingClubs = false; goTo('dashboard'); }
+  else goTo('hole-tracker');
+}
+
+function saveClubEdits() {
+  const round = state.currentRound;
+  app.store.saveClubs(round.round_id, state.clubFeedback);
+  // Se manda también lo que quedó sin calificar, para que borrar un semáforo
+  // llegue al servidor.
+  Object.entries(state.clubFeedback).forEach(([club, fb]) => {
+    app.sync.postToSheets('addClubFeedback', {
+      round_id: round.round_id,
+      club,
+      rating: fb.rating || '',
+      tags: (fb.tags || []).join(','),
+    });
+  });
+  editingClubs = false;
+  renderDashboard(round, Object.values(app.store.loadHoles(round.round_id)));
+  goTo('dashboard');
+  showToast('Palos guardados ✓');
+}
 
 export function initClubFeedback() {
   const list = document.getElementById('clubs-list');
@@ -43,6 +92,7 @@ export function toggleTag(club, tag, el) {
 }
 
 export function finishRound() {
+  if (editingClubs) { saveClubEdits(); return; }
   const roundId = state.currentRound.round_id;
   const holesMap = app.store.loadHoles(roundId, 'me');
   const holes = Object.values(holesMap);
@@ -80,5 +130,6 @@ export function finishRound() {
 
   app.sync.postToSheets('updateRound', roundUpdate);
   renderDashboard(roundUpdate, holes);
+  setDashboardOrigin('home');
   goTo('dashboard');
 }

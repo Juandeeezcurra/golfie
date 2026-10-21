@@ -11,5 +11,6 @@ export const state = {
   currentPlayerId: 'me',
   roundPlayers: [],
   clubFeedback: {},
+  editing: false,   // true mientras se corrige un hoyo de una ronda ya terminada
   courses: [],
 };

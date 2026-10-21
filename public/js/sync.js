@@ -69,6 +69,11 @@ export function createSync({
     store.saveToLS('pending_sync', q);
   }
 
+  // Tags de un palo como texto comparable (llegan como array o como "a,b").
+  function clubTags(v) {
+    return (Array.isArray(v) ? v : String(v || '').split(',')).filter(Boolean).map(String).sort().join(',');
+  }
+
   function sameFields(a, b, fields) {
     return fields.every(key => {
       const fallback = key === 'format' ? 'stroke' : key === 'player_id' ? 'me' : '';
@@ -289,9 +294,15 @@ export function createSync({
       const clubsLocal = store.loadClubs(rid);
       const clubsSrv = srvCF[rid] || {};
       Object.entries(clubsLocal).forEach(([club, fb]) => {
-        if (!fb || (!fb.rating && !(fb.tags && fb.tags.length))) return;
-        if (clubsSrv[club] !== undefined) return;
-        add('addClubFeedback', { round_id: rid, club, rating: fb.rating || '', tags: (fb.tags || []).join(',') });
+        if (!fb) return;
+        const remote = clubsSrv[club];
+        const mine = { rating: fb.rating || '', tags: clubTags(fb.tags) };
+        // Sin nada que decir y nada en el servidor: no hay qué subir. Si el
+        // servidor ya tiene exactamente esto, tampoco. Si difiere (una
+        // corrección de palos, incluso borrar un semáforo), se sube.
+        if (remote === undefined ? (!mine.rating && !mine.tags)
+          : (remote.rating || '') === mine.rating && clubTags(remote.tags) === mine.tags) return;
+        add('addClubFeedback', { round_id: rid, club, rating: mine.rating, tags: (fb.tags || []).join(',') });
       });
     });
 
@@ -329,7 +340,9 @@ export function createSync({
       const holeFields = ['par', 'score', 'putts', 'fairway_hit', 'green_in_regulation', 'penalties', 'up_and_down', 'sand_save'];
       if (supportsPlayers) holeFields.push('stroke_index', 'hole_length');
       if (it.endpoint === 'addHole' && playerHoles[d.hole_number] && sameFields(playerHoles[d.hole_number], d, holeFields)) drop.add(it.id);
-      if (it.endpoint === 'addClubFeedback' && (srvCF[rid] || {})[d.club] !== undefined) drop.add(it.id);
+      const remoteClub = (srvCF[rid] || {})[d.club];
+      if (it.endpoint === 'addClubFeedback' && remoteClub !== undefined
+          && (remoteClub.rating || '') === (d.rating || '') && clubTags(remoteClub.tags) === clubTags(d.tags)) drop.add(it.id);
       const remotePlayer = srvPlayers.find(p => String(p.player_id) === String(d.player_id));
       if (it.endpoint === 'savePlayer' && remotePlayer && sameFields(remotePlayer, d, ['name', 'handicap_index'])) drop.add(it.id);
       const remoteRoundPlayer = (srvRoundPlayers[rid] || {})[d.player_id];
@@ -362,6 +375,9 @@ export function createSync({
         const TERMINAL_FIELDS = ['completed', 'total_score', 'par_total', 'holes_played', 'total_putts', 'fairways_hit', 'fairway_holes', 'greens_in_regulation', 'hcp_index', 'hcp_differential'];
         // Doble filtro: el servidor ya filtra por user_id, pero acá no entra
         // nada que no sea tuyo aunque el servidor devolviera de más.
+        // Rondas con una corrección todavía sin subir: ahí gana lo local, si no
+        // el total viejo del servidor pisaba la edición.
+        const pendingUpdate = new Set(queueGet().filter(it => it.endpoint === 'updateRound').map(it => String(it.data && it.data.round_id)));
         const validServer = serverRounds.filter(r =>
           r.round_id && String(r.round_id).trim() && r.course_name &&
           String(r.user_id || '').trim() === uid);
@@ -371,7 +387,7 @@ export function createSync({
           if (!lr) return sr;
           const result = { ...sr };
           Object.keys(lr).forEach(k => {
-            if (TERMINAL_FIELDS.includes(k)) {
+            if (TERMINAL_FIELDS.includes(k) && !pendingUpdate.has(String(sr.round_id))) {
               if (sr[k] !== undefined && sr[k] !== null && sr[k] !== '') return;
             }
             if (lr[k] !== undefined && lr[k] !== null && lr[k] !== '') result[k] = lr[k];
@@ -439,7 +455,9 @@ export function createSync({
           };
         });
         srvCF = grouped;
-        Object.entries(grouped).forEach(([rid, cf]) => store.saveClubs(rid, cf));
+        // Igual con los palos: si hay una corrección pendiente de esa ronda, se conserva lo local.
+        const pendingClubs = new Set(queueGet().filter(it => it.endpoint === 'addClubFeedback').map(it => String(it.data && it.data.round_id)));
+        Object.entries(grouped).forEach(([rid, cf]) => { if (!pendingClubs.has(String(rid))) store.saveClubs(rid, cf); });
       }
 
       const version = await backendVersion();

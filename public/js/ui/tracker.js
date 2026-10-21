@@ -18,7 +18,23 @@ function roundHoleCount() {
   return Number(state.currentRound && state.currentRound.course_holes_count) || 18;
 }
 
-export function initHoleTracker() {
+// Al terminar de corregir un hoyo, quien abrió la edición decide a dónde volver
+// (el dashboard se registra acá; evita que tracker importe dashboard).
+let onEditDone = () => goTo('dashboard');
+export function setEditDoneHandler(fn) { onEditDone = fn; }
+
+// Corregir un hoyo de una ronda ya terminada: abre el tracker en ese hoyo y,
+// al guardar, vuelve a la tarjeta con los totales recalculados.
+export function startHoleEdit(holeNumber, playerId) {
+  state.currentHole = holeNumber;
+  state.currentPlayerId = playerId || 'me';
+  state.holes = app.store.loadHoles(state.currentRound.round_id, state.currentPlayerId);
+  initHoleTracker({ editing: true });
+  goTo('hole-tracker');
+}
+
+export function initHoleTracker({ editing = false } = {}) {
+  state.editing = editing;
   const round = state.currentRound;
   const course = currentCourse();
   const par = coursePar(course, round?.tee_id, roundHoleCount()) || round?.par_total;
@@ -35,7 +51,7 @@ export function initHoleTracker() {
       : null);
     return { ...p, name: p.name || profiles.get(p.player_id)?.name || 'Jugador', handicap_index: hcp, playing_handicap: playing };
   });
-  if (round?.round_id) app.store.saveRoundPlayers(round.round_id, state.roundPlayers);
+  if (round?.round_id && !state.editing) app.store.saveRoundPlayers(round.round_id, state.roundPlayers);
   if (!state.currentPlayerId || !state.roundPlayers.some(p => p.player_id === state.currentPlayerId)) state.currentPlayerId = state.roundPlayers[0].player_id;
   state.holes = app.store.loadHoles(state.currentRound.round_id, state.currentPlayerId);
   loadHoleState();
@@ -218,7 +234,9 @@ export function renderHole() {
   // cargados: hay veces que se juegan 14 y no 9 o 18. El botón está
   // disponible siempre que haya al menos un hoyo guardado.
   const holesLogged = Object.keys(state.holes).length;
-  document.getElementById('finish-round-btn').style.display = holesLogged >= 1 ? 'block' : 'none';
+  document.getElementById('finish-round-btn').style.display = holesLogged >= 1 && !state.editing ? 'block' : 'none';
+  document.getElementById('delete-round-btn').style.display = state.editing ? 'none' : 'block';
+  document.getElementById('save-hole-btn').textContent = state.editing ? 'GUARDAR CAMBIO →' : 'GUARDAR HOYO →';
 
   // El fairway sólo aplica a par 4/5.
   document.getElementById('toggle-fairway').style.opacity = currentPar === 3 ? 0.3 : 1;
@@ -263,8 +281,9 @@ export function saveHole() {
     penalties: currentPenalties,
     up_and_down: toggles.updown,
     sand_save: toggles.sandsave,
-    stroke_index: currentHoleInfo()?.si ?? null,
-    hole_length: currentHoleInfo()?.length ?? null,
+    // Si el hoyo ya estaba guardado se respeta su snapshot de la tarjeta.
+    stroke_index: state.holes[state.currentHole]?.stroke_index ?? currentHoleInfo()?.si ?? null,
+    hole_length: state.holes[state.currentHole]?.hole_length ?? currentHoleInfo()?.length ?? null,
   };
 
   const scramble = state.currentRound.format === 'scramble';
@@ -278,6 +297,12 @@ export function saveHole() {
   });
   state.holes = app.store.loadHoles(state.currentRound.round_id, state.currentPlayerId || 'me');
   showToast('Hoyo ' + state.currentHole + ' guardado ✓');
+
+  if (state.editing) {
+    state.editing = false;
+    onEditDone();
+    return;
+  }
 
   const nextUnit = scramble
     ? scrambleUnits().find(team => team[0].player_id !== scoringUnit[0]?.player_id && !app.store.loadHoles(state.currentRound.round_id, team[0].player_id)[state.currentHole])
@@ -333,6 +358,11 @@ export function nextHole() {
 }
 
 export function confirmAbort() {
+  if (state.editing) {
+    state.editing = false;
+    goTo('dashboard');
+    return;
+  }
   showModal({
     title: 'Salir de la Ronda',
     body: 'Los datos guardados se mantienen. Podés retomar la ronda más tarde.',

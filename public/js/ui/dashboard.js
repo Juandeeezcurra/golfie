@@ -8,12 +8,46 @@ import { findCourse } from '../catalog.js';
 import { holeInfo, hasStrokeIndex, coursePar } from '../core/courses.js';
 import { scrambleTeamHandicap } from '../core/formats.js';
 import { roundStandings } from '../core/standings.js';
-import { goTo } from './router.js';
-import { initHoleTracker } from './tracker.js';
+import { goTo, switchTab } from './router.js';
+import { initHoleTracker, startHoleEdit, setEditDoneHandler } from './tracker.js';
 
 // Qué tarjeta se está mirando dentro de la ronda actual. 'me' por defecto;
 // viewRound() lo resetea cada vez que se entra a una ronda distinta.
 let dashboardPlayerId = 'me';
+
+// A dónde vuelve la flecha de atrás: la pantalla desde la que se abrió la
+// ronda (inicio, historial o la ficha de un amigo).
+let backTo = 'home';
+const BACK_LABELS = { home: '← Inicio', history: '← Historial', 'friend-detail': '← Volver' };
+
+export function setDashboardOrigin(screen) {
+  backTo = BACK_LABELS[screen] ? screen : 'home';
+  const btn = document.getElementById('dashboard-back');
+  if (btn) btn.textContent = BACK_LABELS[backTo];
+}
+
+export function dashboardBack() {
+  if (backTo === 'friend-detail') goTo('friend-detail');
+  else switchTab(backTo);
+}
+
+// Tocar un hoyo de la tarjeta lo abre para corregirlo.
+export function editHole(holeNumber) {
+  startHoleEdit(holeNumber, dashboardPlayerId);
+}
+
+// Al guardar un hoyo corregido: totales de la ronda recalculados desde los
+// hoyos, subida al servidor y vuelta a la tarjeta.
+setEditDoneHandler(() => {
+  const round = state.currentRound;
+  const meHoles = Object.values(app.store.loadHoles(round.round_id));
+  const updated = { ...round, ...roundTotals(meHoles) };
+  state.currentRound = updated;
+  app.store.saveRoundToLS(updated);
+  app.sync.postToSheets('updateRound', updated);
+  renderDashboard(updated, meHoles);
+  goTo('dashboard');
+});
 
 export function switchDashboardPlayer(playerId) {
   dashboardPlayerId = playerId;
@@ -78,6 +112,7 @@ export function renderDashboard(round, meHoles) {
   const card = scorecardSections(cardHoles, playingHcp, holesCount);
   const units = course?.units === 'yards' ? 'yds' : course ? 'm' : '';
 
+  const ratedClubs = Object.entries(state.clubFeedback).filter(([_, f]) => f.rating || (f.tags || []).length);
   const bestClub = Object.entries(state.clubFeedback).find(([_, f]) => f.rating === 'verde');
   const worstClub = Object.entries(state.clubFeedback).find(([_, f]) => f.rating === 'rojo');
 
@@ -142,6 +177,7 @@ export function renderDashboard(round, meHoles) {
       </div>`).join('')}</div>` : ''}
 
     <div class="section-title">Tarjeta</div>
+    <div class="form-hint" style="margin:-4px 0 0;">Tocá un hoyo para corregirlo.</div>
     <div class="scorecard-totals">
       <div class="scorecard-total-card">
         <div class="stc-val">${card.front.holes.length ? card.front.score : '—'}</div>
@@ -158,7 +194,7 @@ export function renderDashboard(round, meHoles) {
     </div>
     <div class="holes-grid">
       ${cardHoles.slice().sort((a, b) => a.hole_number - b.hole_number).map(h =>
-        `<div class="hole-card ${holeClass(h.score, h.par)}">
+        `<div class="hole-card ${holeClass(h.score, h.par)}" onclick="editHole(${Number(h.hole_number)})">
           <div class="hc-num">Hoyo ${h.hole_number}</div>
           <div class="hc-score-wrap"><div class="hc-score">${h.score}</div></div>
           <div class="hc-par">Par ${h.par}${units && h.hole_length ? ' · ' + h.hole_length + ' ' + units : ''}</div>
@@ -166,19 +202,19 @@ export function renderDashboard(round, meHoles) {
       ).join('')}
     </div>
 
-    ${viewedId === 'me' && Object.keys(state.clubFeedback).length ? `
+    ${viewedId === 'me' ? `
       <div class="section-title" style="margin-top:24px;">Palos</div>
-      <div class="club-feedback-summary">
-        ${Object.entries(state.clubFeedback).filter(([_, f]) => f.rating || f.tags.length).map(([club, fb]) => `
+      ${ratedClubs.length ? `<div class="club-feedback-summary">
+        ${ratedClubs.map(([club, fb]) => `
           <div class="club-feedback-row">
-              <div class="cf-name">${attrText(club)}</div>
+            <div class="cf-name">${attrText(club)}</div>
             <div class="cf-right">
               <div class="cf-dot" style="background:${fb.rating === 'verde' ? 'var(--green)' : fb.rating === 'amarillo' ? 'var(--yellow)' : fb.rating === 'rojo' ? 'var(--red)' : 'var(--border)'}"></div>
-              <div class="cf-tags-small">${fb.tags.slice(0, 2).map(attrText).join(' · ')}</div>
+              <div class="cf-tags-small">${(fb.tags || []).slice(0, 2).map(attrText).join(' · ')}</div>
             </div>
-          </div>
-        `).join('')}
-      </div>
+          </div>`).join('')}
+      </div>` : `<div class="form-hint">Todavía no calificaste ningún palo en esta ronda.</div>`}
+      <button class="secondary-btn" onclick="editClubs()">${ratedClubs.length ? 'Editar palos' : 'Calificar palos'}</button>
     ` : ''}
 
     ${viewedId === 'me' && (bestClub || worstClub) ? `
@@ -199,6 +235,7 @@ export function renderDashboard(round, meHoles) {
 export function viewRound(round_id) {
   const round = app.store.loadRounds().find(r => r.round_id === round_id);
   if (!round) return;
+  setDashboardOrigin(document.querySelector('.screen.active')?.id);
   const savedHoles = app.store.loadHoles(round_id);
   state.currentRound = round;
   state.clubFeedback = app.store.loadClubs(round_id);

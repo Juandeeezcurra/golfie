@@ -16,8 +16,8 @@ import { loadCoursesIntoState, prefillHcp, filterCourses, selectTee, pickCatalog
 import { renderCourseFormHoles, saveNewCourse } from './ui/course-form.js';
 import { loadCatalog } from './catalog.js';
 import { setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort, toggleScoreVisibility } from './ui/tracker.js';
-import { initClubFeedback, setSemaforo, toggleTag, finishRound } from './ui/clubs.js';
-import { viewRound, exportRoundCSV, switchDashboardPlayer } from './ui/dashboard.js';
+import { initClubFeedback, setSemaforo, toggleTag, finishRound, renderClubFeedbackUI, editClubs, clubBack } from './ui/clubs.js';
+import { viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole } from './ui/dashboard.js';
 import {
   renderPending, renderCleanup, renderHold, renderStatusLines,
   showRepair, showCleanup, showHold, clearQueue,
@@ -49,6 +49,7 @@ onEnter('history', renderHistory);
 onEnter('new-round', () => { loadCoursesIntoState(); prefillHcp(); renderRoundPlayers(); });
 onEnter('new-course', renderCourseFormHoles);
 onEnter('friends', renderFriendsList);
+onEnter('club-feedback', renderClubFeedbackUI);
 onEnter('friend-detail', renderFriendDetailScreen);
 
 // ---------- HANDLERS DEL HTML ----------
@@ -63,8 +64,8 @@ Object.assign(window, {
   renderCourseFormHoles, saveNewCourse,
   setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort,
   toggleScoreVisibility,
-  initClubFeedback, setSemaforo, toggleTag, finishRound,
-  viewRound, exportRoundCSV, switchDashboardPlayer,
+  initClubFeedback, setSemaforo, toggleTag, finishRound, editClubs, clubBack,
+  viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole,
   showRepair, showCleanup, showHold, clearQueue,
   renderFriendsList, showAddFriend, viewFriend, editCurrentFriend, viewFriendRound, applySuggestedHandicap,
   renderPending, renderCleanup, renderHold,
