@@ -48,7 +48,7 @@ function renderTotal() {
   const el = document.getElementById('pr-total');
   if (!el) return;
   const idx = scores.map((s, i) => (Number(s) ? i : -1)).filter(i => i >= 0);
-  if (!idx.length) { el.textContent = 'Cargá los hoyos que jugaste'; return; }
+  if (!idx.length) { el.textContent = ''; return; }
   const total = idx.reduce((a, i) => a + Number(scores[i]), 0);
   const par = idx.reduce((a, i) => a + pars[i], 0);
   el.innerHTML = `<b>${total}</b> <span>${formatDiff(total - par)}</span> · ${idx.length} ${idx.length === 1 ? 'hoyo' : 'hoyos'}`;

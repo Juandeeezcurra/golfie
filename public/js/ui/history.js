@@ -13,7 +13,7 @@ export function renderHistory() {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">⛳</div>Todavía no jugaste ninguna ronda.</div>`;
     return;
   }
-  sub.textContent = rounds.length + (rounds.length === 1 ? ' ronda' : ' rondas');
+  sub.textContent = '';
   container.innerHTML = rounds.map(r => roundCardHTML(r)).join('');
 }
 
