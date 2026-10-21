@@ -18,6 +18,11 @@ import { loadCatalog } from './catalog.js';
 import { setPar, changeScore, changePutts, changePenalties, toggleStat, saveHole, prevHole, nextHole, confirmAbort, toggleScoreVisibility } from './ui/tracker.js';
 import { initClubFeedback, setSemaforo, toggleTag, finishRound, renderClubFeedbackUI, editClubs, clubBack } from './ui/clubs.js';
 import { viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole } from './ui/dashboard.js';
+import {
+  renderSocialBlock, renderSocialProfile, refreshFriendsBadge, showProfileForm, dropProfile, showSearchFriends,
+  runSearch, sendRequest, answerRequest, removeConnection, viewSocialFriend, removeSocialFriend, viewSocialRound,
+  pickProfilePhoto, clearProfilePhoto,
+} from './ui/social.js';
 import { shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage } from './ui/share.js';
 import {
   renderPending, renderCleanup, renderHold, renderStatusLines,
@@ -50,6 +55,8 @@ onEnter('history', renderHistory);
 onEnter('new-round', () => { loadCoursesIntoState(); prefillHcp(); renderRoundPlayers(); });
 onEnter('new-course', renderCourseFormHoles);
 onEnter('friends', renderFriendsList);
+onEnter('friends', renderSocialBlock);
+onEnter('social-profile', renderSocialProfile);
 onEnter('club-feedback', renderClubFeedbackUI);
 onEnter('friend-detail', renderFriendDetailScreen);
 
@@ -67,6 +74,8 @@ Object.assign(window, {
   toggleScoreVisibility,
   initClubFeedback, setSemaforo, toggleTag, finishRound, editClubs, clubBack,
   viewRound, exportRoundCSV, switchDashboardPlayer, dashboardBack, editHole,
+  showProfileForm, dropProfile, showSearchFriends, runSearch, sendRequest, answerRequest, removeConnection,
+  viewSocialFriend, removeSocialFriend, viewSocialRound, pickProfilePhoto, clearProfilePhoto,
   shareRoundImage, makeShareImage, sharePreviewImage, downloadPreviewImage,
   showRepair, showCleanup, showHold, clearQueue,
   renderFriendsList, showAddFriend, viewFriend, editCurrentFriend, viewFriendRound, applySuggestedHandicap,
@@ -89,6 +98,7 @@ function init() {
   initClubFeedback();
   app.sync.flushPending();
   app.sync.syncFromServer();
+  refreshFriendsBadge();
 }
 
 if (document.readyState === 'loading') {
@@ -100,7 +110,7 @@ if (document.readyState === 'loading') {
 // Volver a intentar en cuanto haya señal otra vez, o al volver a la app.
 window.addEventListener('online', () => app.sync.flushPending());
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') app.sync.flushPending();
+  if (document.visibilityState === 'visible') { app.sync.flushPending(); refreshFriendsBadge(); }
 });
 
 // Service worker: hace que la app abra sin señal (antes dependía de la caché

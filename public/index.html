@@ -57,6 +57,7 @@
   <button class="bn-btn" id="bn-friends" onclick="switchTab('friends')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.2 14.8c2.6.3 4.3 2.3 4.3 5.2"/></svg>
     Amigos
+    <span class="nav-badge" id="friends-badge" style="display:none;"></span>
   </button>
   <button class="bn-btn" id="bn-settings" onclick="showSettings()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 5a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 5a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09A1.65 1.65 0 0019.4 15z"/></svg>
@@ -101,7 +102,12 @@
 <div class="screen" id="friends">
   <div class="history-header">
     <div class="history-title">Amigos</div>
-    <div class="history-sub">Las rondas que anotaste para ellos</div>
+    <div class="history-sub">Conectate con tus amigos de Golfie</div>
+  </div>
+  <div class="history-list" id="social-block"></div>
+  <div class="history-list">
+    <div class="section-title social-title" style="margin-top:28px;">Jugadores que anotás vos</div>
+    <div class="form-hint" style="margin:-4px 0 0;">Perfiles locales: les cargás las rondas desde tu teléfono.</div>
   </div>
   <div class="history-list" id="friends-list"></div>
   <button class="cta-btn friends-add-btn" onclick="showAddFriend()">+ Agregar amigo</button>
@@ -120,6 +126,25 @@
     <div id="friend-stats"></div>
     <div class="section-title" style="margin-top:24px;">Rondas juntos</div>
     <div id="friend-rounds-list" class="history-list" style="padding:0;"></div>
+  </div>
+</div>
+
+<!-- ===== FICHA DE UN AMIGO CONECTADO ===== -->
+<div class="screen" id="social-profile">
+  <div class="nav">
+    <button class="nav-back" onclick="switchTab('friends')">← Amigos</button>
+  </div>
+  <div class="form-screen">
+    <div class="sp-head">
+      <div id="sp-avatar"></div>
+      <div class="sp-head-text">
+        <div class="screen-title" id="sp-title">—</div>
+        <div class="form-hint" id="sp-sub"></div>
+      </div>
+    </div>
+    <div id="sp-stats"></div>
+    <div id="sp-rounds"></div>
+    <button class="danger-btn" onclick="removeSocialFriend()">Dejar de ser amigos</button>
   </div>
 </div>
 

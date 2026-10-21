@@ -110,14 +110,14 @@ function trendHtml(trend) {
     </div>`;
 }
 
-function gameHtml(avg) {
+function gameHtml(avg, third) {
   if (!avg) return '';
   const row = (label, value, pct, color) => `
     <div class="metric">
       <div class="metric-head"><span>${label}</span><b>${value}</b></div>
       ${pct === null ? '' : meter(pct, { color })}
     </div>`;
-  return `<div class="section-title" style="margin-top:24px;">Tu juego</div>
+  return `<div class="section-title" style="margin-top:24px;">${third ? 'Su juego' : 'Tu juego'}</div>
     <div class="panel">
       ${row('Fairways', avg.fairwayPct === null ? '—' : avg.fairwayPct + '%', avg.fairwayPct, 'var(--green)')}
       ${row('Greens en regulación', avg.girPct + '%', avg.girPct, 'var(--yellow)')}
@@ -126,7 +126,7 @@ function gameHtml(avg) {
     </div>`;
 }
 
-function scoringHtml(dist) {
+function scoringHtml(dist, third) {
   if (!dist.total) return '';
   const segs = [
     { label: 'Eagles', value: dist.eagle, color: '#ffd700' },
@@ -140,7 +140,7 @@ function scoringHtml(dist) {
   const legend = segs.filter(s => s.value > 0).map(s =>
     `<span class="legend-item"><i style="background:${s.color}"></i>${s.label} <b>${s.value}</b> <em>${pct(s.value)}%</em></span>`
   ).join('');
-  return `<div class="section-title" style="margin-top:24px;">Cómo anotás</div>
+  return `<div class="section-title" style="margin-top:24px;">${third ? 'Cómo anota' : 'Cómo anotás'}</div>
     <div class="panel">
       ${stackedBar(segs)}
       <div class="legend">${legend}</div>
@@ -148,7 +148,7 @@ function scoringHtml(dist) {
     </div>`;
 }
 
-function parTypeHtml(rows) {
+function parTypeHtml(rows, third) {
   if (!rows.length) return '';
   const worst = rows.reduce((a, b) => (b.vsPar > a.vsPar ? b : a));
   return `<div class="section-title" style="margin-top:24px;">Por tipo de hoyo</div>
@@ -160,7 +160,7 @@ function parTypeHtml(rows) {
           <div class="stat-note">${r.holes} hoyos</div>
         </div>`).join('')}
     </div>
-    <div class="panel-foot" style="padding:0 2px;">Donde más golpes perdés: <b>par ${worst.par}</b></div>`;
+    <div class="panel-foot" style="padding:0 2px;">${third ? 'Donde más golpes pierde' : 'Donde más golpes perdés'}: <b>par ${worst.par}</b></div>`;
 }
 
 // "Por cancha" se puede mirar de cuatro formas: rondas de 18, rondas de 9, y
@@ -252,15 +252,16 @@ function shortGameHtml(sg) {
 //   scope        identifica el bloque "Por cancha" (home / friend)
 //   holesOf      hoyos guardados de una ronda (para mejor ida / vuelta)
 //   estimateHcp  muestra un handicap estimado aunque falten rondas (amigos)
-export function renderInsightsSections(rounds, holes, { scope = 'home', holesOf = r => r._holes || [], estimateHcp = false } = {}) {
+//   third        títulos en tercera persona ("Su juego") para las fichas de amigos
+export function renderInsightsSections(rounds, holes, { scope = 'home', holesOf = r => r._holes || [], estimateHcp = false, third = false } = {}) {
   if (!rounds.length) return '';
   courseCtx[scope] = { rounds, holesOf };
   return [
     heroHtml(handicapIndexNow(rounds), scoringForm(rounds), estimateHcp ? provisionalHandicapIndex(rounds) : null),
     trendHtml(scoreTrend(rounds)),
-    gameHtml(playAverages(holes)),
-    scoringHtml(scoringDistribution(holes)),
-    parTypeHtml(byParType(holes)),
+    gameHtml(playAverages(holes), third),
+    scoringHtml(scoringDistribution(holes), third),
+    parTypeHtml(byParType(holes), third),
     coursesHtml(scope),
     shortGameHtml(shortGame(holes)),
   ].join('');

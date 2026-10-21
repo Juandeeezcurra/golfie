@@ -38,7 +38,7 @@ function toSql(value, type) {
   return value.toString();
 }
 
-function rowFromSql(name, raw) {
+export function rowFromSql(name, raw) {
   if (!raw) return null;
   const cols = COLUMNS[name];
   const obj = {};

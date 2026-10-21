@@ -145,7 +145,7 @@ export function renderFriendDetailScreen() {
   }
 
   const statsEl = document.getElementById('friend-stats');
-  if (statsEl) statsEl.innerHTML = renderInsightsSections(rounds, holes, { scope: 'friend', estimateHcp: true });
+  if (statsEl) statsEl.innerHTML = renderInsightsSections(rounds, holes, { scope: 'friend', estimateHcp: true, third: true });
 
   const listEl = document.getElementById('friend-rounds-list');
   if (listEl) {

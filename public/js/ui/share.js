@@ -316,11 +316,17 @@ export async function makeShareImage(selection) {
     names: { me: name || undefined },
     hasNet: hasNetFor(round, players),
   });
+  const showName = model.mode === 'single' && (model.rows[0].key !== 'me' || !!name);
+  await showRoundImage({ round, model, showName });
+}
+
+// Dibuja el modelo y abre la vista previa con compartir / descargar. La usan
+// la tarjeta propia y la de un amigo conectado.
+export async function showRoundImage({ round, model, showName }) {
   if (!model.rows.length || !model.rows.some(r => r.total.played)) { showToast('No hay hoyos para mostrar'); return; }
 
   showToast('Armando la imagen…');
   try {
-    const showName = model.mode === 'single' && (model.rows[0].key !== 'me' || !!name);
     const canvas = await renderShareCanvas(model, { showName });
     const blob = await new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('sin imagen'))), 'image/png'));
     if (lastUrl) URL.revokeObjectURL(lastUrl);

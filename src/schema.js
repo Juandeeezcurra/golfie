@@ -109,6 +109,31 @@ export const HEADERS = Object.fromEntries(
   Object.entries(COLUMNS).map(([name, cols]) => [name, Object.keys(cols)])
 );
 
+// Perfiles y amistades (ver migrations/0007_social.sql). A propósito fuera de
+// COLUMNS/SHEETS: no vienen de Sheets, y así las herramientas de importación,
+// que vacían las tablas de COLUMNS antes de cargar, nunca las tocan.
+const SOCIAL_SQL = `CREATE TABLE IF NOT EXISTS profiles (
+  _seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT,
+  username TEXT,
+  display_name TEXT,
+  avatar TEXT,
+  created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS friendships (
+  _seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  requester_id TEXT,
+  addressee_id TEXT,
+  status TEXT,
+  created_at TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username ON profiles (username);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_friendships_pair ON friendships (requester_id, addressee_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships (addressee_id);`;
+
 const SQL_TYPE = { [T.TEXT]: 'TEXT', [T.NUM]: 'REAL', [T.BOOL]: 'INTEGER' };
 
 // Genera el DDL de las 3 tablas + índices de los filtros calientes
@@ -134,5 +159,6 @@ export function buildSchemaSql() {
   out.push('CREATE INDEX IF NOT EXISTS idx_players_user ON players (user_id);');
   out.push('CREATE INDEX IF NOT EXISTS idx_round_players_round ON round_players (round_id);');
   out.push('CREATE INDEX IF NOT EXISTS idx_round_players_user ON round_players (user_id);');
+  out.push(SOCIAL_SQL);
   return out.join('\n\n') + '\n';
 }

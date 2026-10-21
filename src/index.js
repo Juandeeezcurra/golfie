@@ -13,6 +13,7 @@
 //        -> { ok: true, result } | { ok: false, error }
 // ============================================================
 
+import { saveProfile, deleteProfile, getSocial, searchProfiles, requestFriend, respondFriend, removeFriend, getFriendData } from './social.js';
 import { addRound, updateRound, deleteRoundRows, addHole, addClubFeedback, savePlayer, addRoundPlayer, getRounds, getHoles, getClubFeedback, getPlayers, getRoundPlayers } from './db.js';
 
 function json(data, status = 200) {
@@ -28,7 +29,7 @@ async function handleGet(url, env) {
 
   // La app pregunta la versión antes de reconciliar: contra un backend
   // append-only (el Apps Script viejo) reenviar datos duplicaría filas.
-  if (action === 'ping') return json({ ok: true, v: 3, caps: ['players', 'round_players', 'player_holes', 'formats'] });
+  if (action === 'ping') return json({ ok: true, v: 3, caps: ['players', 'round_players', 'player_holes', 'formats', 'social'] });
 
   // Sin código de usuario no se devuelve nada: evita que un dispositivo se
   // baje las rondas de todos los que alguna vez pegaron al backend.
@@ -39,6 +40,15 @@ async function handleGet(url, env) {
   if (action === 'getClubFeedback') return json(await getClubFeedback(env.DB, userId));
   if (action === 'getPlayers') return json(await getPlayers(env.DB, userId));
   if (action === 'getRoundPlayers') return json(await getRoundPlayers(env.DB, userId));
+
+  // Social: devuelve { error } en vez de reventar si algo no corresponde.
+  try {
+    if (action === 'getSocial') return json(await getSocial(env.DB, userId));
+    if (action === 'searchProfiles') return json(await searchProfiles(env.DB, userId, url.searchParams.get('q')));
+    if (action === 'getFriendData') return json(await getFriendData(env.DB, userId, url.searchParams.get('username')));
+  } catch (err) {
+    return json({ error: err && err.message ? err.message : String(err) });
+  }
 
   return json({ error: 'Unknown action' });
 }
@@ -61,6 +71,11 @@ async function handlePost(request, env) {
       case 'deleteRound': result = await deleteRoundRows(env.DB, data); break;
       case 'savePlayer': result = await savePlayer(env.DB, data); break;
       case 'addRoundPlayer': result = await addRoundPlayer(env.DB, data); break;
+      case 'saveProfile': result = await saveProfile(env.DB, data); break;
+      case 'deleteProfile': result = await deleteProfile(env.DB, data); break;
+      case 'requestFriend': result = await requestFriend(env.DB, data); break;
+      case 'respondFriend': result = await respondFriend(env.DB, data); break;
+      case 'removeFriend': result = await removeFriend(env.DB, data); break;
       default: return json({ ok: false, error: 'Unknown action: ' + data.action });
     }
     return json({ ok: true, result });
